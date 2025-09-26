@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import logo from "../assets/logo.png";
 import contractorIcon from "../assets/signup/contractor.png";
@@ -7,6 +7,13 @@ import supplierIcon from "../assets/signup/supplier.png";
 import arrowIcon from "../assets/signup/arrow.png";
 
 export default function LoginSelection() {
+  const navigate = useNavigate();
+
+  function go(role) {
+    const params = new URLSearchParams({ role });
+    navigate(`/login?${params.toString()}`);
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white w-[350px] p-6 rounded-xl shadow-md">
@@ -24,8 +31,8 @@ export default function LoginSelection() {
         </p>
 
         <div className="flex flex-col gap-3">
-          <Link
-            to="/login"
+          <button
+            onClick={() => go('contractor')}
             className="group flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 text-gray-900 font-medium hover:border-green-500 hover:bg-green-50 transition-colors"
           >
             <span className="flex items-center gap-3">
@@ -41,10 +48,10 @@ export default function LoginSelection() {
               alt="Go"
               className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
             />
-          </Link>
+          </button>
 
-          <Link
-            to="/login"
+          <button
+            onClick={() => go('technician')}
             className="group flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 text-gray-900 font-medium hover:border-green-500 hover:bg-green-50 transition-colors"
           >
             <span className="flex items-center gap-3">
@@ -60,10 +67,10 @@ export default function LoginSelection() {
               alt="Go"
               className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
             />
-          </Link>
+          </button>
 
-          <Link
-            to="/login"
+          <button
+            onClick={() => go('supplier')}
             className="group flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 text-gray-900 font-medium hover:border-green-500 hover:bg-green-50 transition-colors"
           >
             <span className="flex items-center gap-3">
@@ -79,10 +86,10 @@ export default function LoginSelection() {
               alt="Go"
               className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
             />
-          </Link>
+          </button>
 
-          <Link
-            to="/login"
+          <button
+            onClick={() => go('consultant')}
             className="group flex items-center justify-between border border-gray-200 rounded-lg py-3 px-4 text-gray-900 font-medium hover:border-green-500 hover:bg-green-50 transition-colors"
           >
             <span className="flex items-center gap-3">
@@ -98,7 +105,7 @@ export default function LoginSelection() {
               alt="Go"
               className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
             />
-          </Link>
+          </button>
         </div>
       </div>
     </div>

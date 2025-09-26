@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useState, useMemo } from "react";
 import showPasswordIcon from "../assets/showpassword.png";
 import hidePasswordIcon from "../assets/hidepassword.png";
 
@@ -7,6 +7,30 @@ import logo from "../assets/logo.png";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const location = useLocation();
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const role = (params.get('role') || '').toLowerCase();
+  const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || 'Login failed');
+      alert('Login successful');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white w-[350px] p-6 rounded-xl shadow-md">
@@ -19,20 +43,28 @@ export default function Login() {
         <h2 className="text-center text-xl font-semibold text-gray-800">
           Login
         </h2>
+        {roleLabel ? (
+          <p className="text-center text-sm text-gray-600 mt-1">Login as {roleLabel}</p>
+        ) : null}
         <p className="text-center text-gray-500 text-sm mb-6">
           Welcome back, Sign in to continue
         </p>
 
-        <form className="flex flex-col gap-4">
+        <form className="flex flex-col gap-4" onSubmit={handleLogin}>
+          {error ? <div className="text-red-600 text-sm">{error}</div> : null}
           <input
             type="text"
             placeholder="Email / phone number"
+            value={email}
+            onChange={(e)=>setEmail(e.target.value)}
             className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Password"
+              value={password}
+              onChange={(e)=>setPassword(e.target.value)}
               className="w-full pr-10 pl-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
             <button

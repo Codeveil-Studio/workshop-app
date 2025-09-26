@@ -15,10 +15,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/loginselection" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/LoginSelection" element={<LoginSelection />} />
+        <Route path="/loginselection" element={<LoginSelection />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/admindashboard" element={<AdminDashboard />} />
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
