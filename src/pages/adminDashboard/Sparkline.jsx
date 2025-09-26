@@ -1,15 +1,14 @@
 import React from "react";
 
 export default function Sparkline({
-  points = [10, 25, 50, 70, 15, 35, 50], // sample data
+  points = [30, 50, 70, 20, 40], // sample data
   height = 192,
   padding = 30,
-  maxY = 100, // fixed max for y axis (0–100 as in your screenshot)
+  maxY = 100,
   stepY = 25,
 }) {
-  // Use a larger responsive width for better desktop display
-  const width = 1100; // Increased width for better desktop scaling
-  
+  const width = 1100;
+
   const normalizeY = (value) => {
     return (
       height -
@@ -37,59 +36,77 @@ export default function Sparkline({
         className="overflow-visible"
         preserveAspectRatio="xMidYMid meet"
       >
-      {/* Grid lines & y-axis labels */}
-      {Array.from({ length: maxY / stepY + 1 }, (_, i) => {
-        const yVal = i * stepY;
-        const y = normalizeY(yVal);
-        return (
-          <g key={yVal}>
+        {/* Horizontal grid lines & y-axis labels */}
+        {Array.from({ length: maxY / stepY + 1 }, (_, i) => {
+          const yVal = i * stepY;
+          const y = normalizeY(yVal);
+          return (
+            <g key={yVal}>
+              <line
+                x1={padding}
+                y1={y}
+                x2={width - padding}
+                y2={y}
+                stroke="#d1d5db" /* Tailwind gray-300 */
+                strokeWidth="1"
+                strokeDasharray="4,4" /* dotted line */
+              />
+              <text
+                x={padding - 6}
+                y={y + 4}
+                fontSize="10"
+                textAnchor="end"
+                fill="#6b7280" /* Tailwind gray-500 */
+              >
+                {yVal}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Vertical grid lines */}
+        {points.map((_, i) => {
+          const x = padding + i * xStep;
+          return (
             <line
-              x1={padding}
-              y1={y}
-              x2={width - padding}
-              y2={y}
-              stroke="#e5e7eb" /* Tailwind gray-200 */
+              key={i}
+              x1={x}
+              y1={padding}
+              x2={x}
+              y2={height - padding}
+              stroke="#d1d5db"
               strokeWidth="1"
+              strokeDasharray="4,4" /* dotted line */
             />
-            <text
-              x={padding - 6}
-              y={y + 4}
-              fontSize="10"
-              textAnchor="end"
-              fill="#6b7280" /* Tailwind gray-500 */
-            >
-              {yVal}
-            </text>
-          </g>
-        );
-      })}
+          );
+        })}
 
-      {/* Area under the line */}
-      <path
-        d={`${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`}
-        fill="rgba(16,185,129,0.15)" // green-500 with opacity
-      />
+        {/* Area under the line */}
+        <path
+          d={`${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`}
+          fill="rgba(132, 239, 132, 0.2)" // lighter green (pastel) fill
+        />
 
-      {/* Main line */}
-      <path
-        d={path}
-        fill="none"
-        stroke="#10B981" // Tailwind green-500
-        strokeWidth="2"
-      />
-
-      {/* Data point circles */}
-      {points.map((p, i) => (
-        <circle
-          key={i}
-          cx={padding + i * xStep}
-          cy={normalizeY(p)}
-          r="4"
-          fill="white"
-          stroke="#3b82f6" // Tailwind blue-500
+        {/* Main line */}
+        <path
+          d={path}
+          fill="none"
+          stroke="#22c55e" // Tailwind green-500 (brighter, matching screenshot)
           strokeWidth="2"
         />
-      ))}
+
+        {/* Data point circles */}
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={padding + i * xStep}
+            cy={normalizeY(p)}
+            r="4"
+            fill="white"
+            stroke="#3b82f6" // Tailwind blue-500
+            strokeWidth="2"
+          />
+        ))}
       </svg>
     </div>
   );

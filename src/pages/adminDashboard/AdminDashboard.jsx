@@ -8,6 +8,8 @@ import Modal from './Modal'
 import OrderEditor from './OrderEditor'
 import RepairForm from './RepairForm'
 import UserPanel from './UserPanel'
+import ManagementSection from './UserManagement'
+import Roles from './Roles'
 
 function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard')
@@ -83,11 +85,11 @@ function AdminDashboard() {
       case 'Orders':
         if (isEditingRepair && editingOrder) {
           return (
-            <RepairForm 
-              order={editingOrder} 
+            <RepairForm
+              order={editingOrder}
               onCancel={handleCancelRepair}
               onSave={(updatedOrder) => {
-                setOrders(orders.map(order => 
+                setOrders(orders.map(order =>
                   order.id === editingOrder.id ? { ...order, ...updatedOrder } : order
                 ))
                 setIsEditingRepair(false)
@@ -154,12 +156,17 @@ function AdminDashboard() {
           </div>
         )
       case 'User Management':
-        return <UserPanel />
+        return (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <ManagementSection />
+            </div>
+          </div>
+        )
       case 'User Roles':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">User Roles Management</h3>
-            <p className="text-gray-600">User roles management functionality will be implemented here.</p>
+          <div className="bg-white rounded-lg shadow">
+            <Roles />
           </div>
         )
       case 'Settings':
@@ -184,9 +191,9 @@ function AdminDashboard() {
       <div className="flex flex-col lg:flex-row">
         <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
         <div className="flex-1 lg:ml-0">
-          <Header 
-            onAddOrder={handleAddOrder} 
-            activeMenu={activeMenu} 
+          <Header
+            onAddOrder={handleAddOrder}
+            activeMenu={activeMenu}
             editingOrder={isEditingRepair ? editingOrder : null}
           />
           <main className="p-3 sm:p-4 lg:p-6">

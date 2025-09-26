@@ -6,6 +6,14 @@ function DashboardIcon({ className = '' }) {
     )
 }
 
+function FilterIcon({ className = '' }) {
+    return (
+        <svg className={className} viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.7999 9.97499L5.8249 1.99999H17.9999C18.4166 1.99999 18.7166 2.18332 18.8999 2.54999C19.0832 2.91665 19.0499 3.26665 18.7999 3.59999L13.7999 9.97499ZM18.7749 20.6L12.9999 14.825V17C12.9999 17.2833 12.9042 17.5207 12.7129 17.712C12.5209 17.904 12.2832 18 11.9999 18H9.9999C9.71657 18 9.47924 17.904 9.2879 17.712C9.0959 17.5207 8.9999 17.2833 8.9999 17V10.825L0.399902 2.22499L1.7999 0.799988L20.1999 19.2L18.7749 20.6Z" fill="CurrentColor" />
+        </svg>
+    )
+}
+
 function RefreshIcon({ className = '' }) {
     return (
         <svg className={className} viewBox="0 0 18 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -56,6 +64,10 @@ function Header({ query, setQuery, onAddOrder, activeMenu, editingOrder }) {
                     <div className="flex items-center gap-2 flex-1 sm:flex-none">
                         <button onClick={onAddOrder} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#305940] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
                             Add Order
+                        </button>
+                        <button className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#305940] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
+                            <span>Filters</span>
+                            <FilterIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                         <button onClick={() => window.location.reload()} className="bg-[#29cc6a] text-white p-2 rounded-lg hover:bg-[#305940] flex items-center justify-center">
                             <RefreshIcon className="w-5 h-5 sm:w-6 sm:h-6" />

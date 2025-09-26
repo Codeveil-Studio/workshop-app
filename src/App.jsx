@@ -9,6 +9,7 @@ import Signup from './pages/signup.jsx'
 import AdminDashboard from './pages/adminDashboard/AdminDashboard.jsx'
 import Logs from './pages/Logs.jsx'
 import Reports from './pages/Reports.jsx'
+import UserManagement from './pages/adminDashboard/UserManagement'
 
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/logs" element={<Logs />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/admin/users" element={<UserManagement />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
