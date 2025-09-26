@@ -16,3 +16,35 @@ body {
   background-color: rgb(var(--bg));
   color: rgb(var(--fg));
 }
+
+/* Custom Scrollbar Styles */
+*::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f1f1 !important;
+  border-radius: 3px !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #29cc6a !important;
+  border-radius: 3px !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #1fa554 !important;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: #29cc6a #f1f1f1 !important;
+}
+
+/* Ensure the dropdown has a scrollbar when needed */
+.status-dropdown {
+  overflow-y: auto !important;
+  max-height: 200px !important;
+}

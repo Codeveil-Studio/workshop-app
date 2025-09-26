@@ -1,4 +1,4 @@
-// import profilePic from '.../assets/logo.png'
+import profilePic from '../../assets/images/profile.jpg'
 
 function AdminNavbar() {
   return (
@@ -6,7 +6,7 @@ function AdminNavbar() {
       <div className="flex justify-end items-center">
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold">Admin</span>
-          {/* <img src={profilePic} alt="Admin Profile" className="w-8 h-8 rounded-full object-cover" /> */}
+          <img src={profilePic} alt="Admin Profile" className="w-8 h-8 rounded-full object-cover" />
         </div>
       </div>
     </div>
