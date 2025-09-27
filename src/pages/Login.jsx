@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useMemo } from "react";
 import showPasswordIcon from "../assets/showpassword.png";
 import hidePasswordIcon from "../assets/hidepassword.png";
@@ -11,6 +11,7 @@ export default function Login() {
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const role = (params.get('role') || '').toLowerCase();
   const roleLabel = role ? role.charAt(0).toUpperCase() + role.slice(1) : '';
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -26,6 +27,10 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Login failed');
+      if (role === 'contractor') {
+        navigate('/contractordashboard');
+        return;
+      }
       alert('Login successful');
     } catch (err) {
       setError(err.message);
