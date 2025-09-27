@@ -1,6 +1,7 @@
 // src/components/Contractor.jsx
 import React, { useMemo, useState } from "react";
 import PersonalInformation from "./PersonalInformation";
+import ChangePassword from "./ChangePassword";
 
 /* -------------------------
    Icons (use fill="currentColor")
@@ -160,10 +161,13 @@ export default function Contractor({
   // If a contractor is selected, show their information
   if (selectedContractor) {
     return (
-      <PersonalInformation 
-        contractor={selectedContractor}
-        onBack={() => setSelectedContractor(null)}
-      />
+      <>
+        <PersonalInformation 
+          contractor={selectedContractor}
+          onBack={() => setSelectedContractor(null)}
+        />
+        <ChangePassword />
+      </>
     );
   }
 

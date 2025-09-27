@@ -1,6 +1,5 @@
 // PersonalInformation.jsx
 import React, { useRef, useState } from "react";
-import ChangePassword from "./ChangePassword";
 
 /**
  * PersonalInformation.jsx
@@ -50,7 +49,7 @@ export default function PersonalInformation() {
   }
 
   return (
-    <div className="w-full"> {/* Changed from just w-full to include space-y-6 */}
+    <div className="w-full">
       {/* Personal Information Section */}
       <div className="bg-white rounded-lg shadow border-t-2 border-[#29cc6a]">
         <div className="p-6">
@@ -204,9 +203,6 @@ export default function PersonalInformation() {
           </div>
         </div>
       </div>
-
-      {/* Password Change Section */}
-      <ChangePassword />
     </div>
   );
 }

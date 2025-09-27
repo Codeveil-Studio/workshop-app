@@ -27,8 +27,7 @@ export default function ChangePassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto mt-10">
         <div className="bg-white rounded-lg shadow border-t-2 border-[#29cc6a]">
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -111,6 +110,5 @@ export default function ChangePassword() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

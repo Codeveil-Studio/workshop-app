@@ -10,8 +10,9 @@ import RepairForm from './RepairForm'
 import UserPanel from './UserPanel'
 import ManagementSection from './UserManagement'
 import Roles from './Roles'
+import Settings from './Settings'
 
-function AdminDashboard() {
+export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard')
   const [orders, setOrders] = useState([
     {
@@ -171,9 +172,8 @@ function AdminDashboard() {
         )
       case 'Settings':
         return (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Settings</h3>
-            <p className="text-gray-600">Settings functionality will be implemented here.</p>
+          <div className="bg-white rounded-lg shadow">
+            <Settings />
           </div>
         )
       default:
@@ -186,10 +186,28 @@ function AdminDashboard() {
     }
   }
 
+  const handleMenuClick = (menuItem) => {
+    // If clicking the same menu item that's already active
+    if (activeMenu === menuItem) {
+      // If we're editing an order, clear the editing state
+      if (menuItem === 'Orders' && (isEditingRepair || editingOrder)) {
+        setIsEditingRepair(false)
+        setEditingOrder(null)
+      }
+      // Add similar conditions for other sections that have inner navigation
+    } else {
+      // If clicking a different menu item, set it as active
+      setActiveMenu(menuItem)
+      // Reset any editing states
+      setIsEditingRepair(false)
+      setEditingOrder(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col lg:flex-row">
-        <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
+        <Sidebar activeMenu={activeMenu} setActiveMenu={handleMenuClick} />
         <div className="flex-1 lg:ml-0">
           <Header
             onAddOrder={handleAddOrder}
@@ -215,5 +233,3 @@ function AdminDashboard() {
     </div>
   )
 }
-
-export default AdminDashboard

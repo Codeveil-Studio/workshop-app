@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
-import arrowIcon from "../assets/signup/arrow.png";
 
 function ContractorIcon({ className = '' }) {
   return (
@@ -32,6 +31,13 @@ function ConsultantIcon({ className = '' }) {
       <path d="M9.07541 24.9998L11.8656 22.7085L11.5132 21.0669L9.07542 23.0846L8.66425 24.9998L9.07541 24.9998Z" fill="currentColor" />
       <path d="M21 24.9998V21.922C21 18.6387 18.7384 16.0055 15.919 16.0055H15.7721L13.4224 25L21 24.9998Z" fill="currentColor" />
       <path d="M7.5482 24.9998L5.31608 16.0054H5.11039C2.26143 16.0056 0 18.6388 0 21.922V24.9999L7.5482 24.9998Z" fill="currentColor" />
+    </svg>
+  )
+}
+function ArrowIcon({ className = '' }) {
+  return (
+    <svg className={className} viewBox="0 0 14 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0.599866 19.9999L8.59989 11.9999L0.599868 3.9999L2.19987 0.799886L13.3999 11.9999L2.19987 23.2L0.599866 19.9999Z" fill="currentColor" />
     </svg>
   )
 }
@@ -69,11 +75,7 @@ export default function LoginSelection() {
               <ContractorIcon className="w-6 h-6 group-hover:text-[#29cc6a]" />
               <span>Login As Contractor</span>
             </span>
-            <img
-              src={arrowIcon}
-              alt="Go"
-              className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
-            />
+            <ArrowIcon className="w-4 h-4 group-hover:text-[#29cc6a] transition-transform group-hover:translate-x-1" />
           </button>
 
           <button
@@ -84,11 +86,7 @@ export default function LoginSelection() {
               <TechnicianIcon className="w-6 h-6 font-bold group-hover:text-[#29cc6a]" />
               <span>Login As Technician</span>
             </span>
-            <img
-              src={arrowIcon}
-              alt="Go"
-              className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
-            />
+            <ArrowIcon className="w-4 h-4 group-hover:text-[#29cc6a] transition-transform group-hover:translate-x-1" />
           </button>
 
           <button
@@ -99,11 +97,7 @@ export default function LoginSelection() {
               <SupplierIcon className="w-6 h-6 text-black group-hover:text-[#29cc6a]" />
               <span>Login As Supplier</span>
             </span>
-            <img
-              src={arrowIcon}
-              alt="Go"
-              className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
-            />
+            <ArrowIcon className="w-4 h-4 group-hover:text-[#29cc6a] transition-transform group-hover:translate-x-1" />
           </button>
 
           <button
@@ -114,11 +108,7 @@ export default function LoginSelection() {
               <ConsultantIcon className="w-6 h-6 group-hover:text-[#29cc6a]" />
               <span>Login As Consultant</span>
             </span>
-            <img
-              src={arrowIcon}
-              alt="Go"
-              className="h-4 w-4 opacity-70 transition-transform group-hover:translate-x-1"
-            />
+            <ArrowIcon className="w-4 h-4 group-hover:text-[#29cc6a] transition-transform group-hover:translate-x-1" />
           </button>
         </div>
       </div>
