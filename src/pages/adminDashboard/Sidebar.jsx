@@ -9,6 +9,14 @@ function DashboardIcon({ className = '' }) {
   )
 }
 
+function OrdersIcon({ className = '' }) {
+  return (
+    <svg className={className} viewBox="0 0 26 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M25.7495 19.1558L18.4062 26.5122L14.8599 22.9526L16.0464 21.7661L18.4062 24.1128L24.563 17.9692L25.7495 19.1558ZM12.5 8.4375H7.4375V6.75H12.5V8.4375ZM12.5 11.8125H7.4375V10.125H12.5V11.8125ZM7.4375 13.5H12.5V15.1875H7.4375V13.5ZM5.75 8.4375H4.0625V6.75H5.75V8.4375ZM5.75 11.8125H4.0625V10.125H5.75V11.8125ZM4.0625 13.5H5.75V15.1875H4.0625V13.5ZM14.1875 8.4375V1.6875H2.375V25.3125H14.1875V27H0.6875V0H15.3872L22.625 7.23779V16.875L20.9375 18.5625V8.4375H14.1875ZM15.875 6.75H19.7378L15.875 2.88721V6.75Z" fill="CurrentColor" />
+    </svg>
+  )
+}
+
 function UsersIcon({ className = '' }) {
   return (
     <svg className={className} viewBox="0 0 23 22" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -36,6 +44,7 @@ function SettingsIcon({ className = '' }) {
 function Sidebar({ activeMenu, setActiveMenu }) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', Icon: DashboardIcon },
+    { id: 'orders', label: 'Orders', Icon: OrdersIcon },
     { id: 'users', label: 'User Management', Icon: UsersIcon },
     { id: 'roles', label: 'User Roles', Icon: RolesIcon },
     { id: 'settings', label: 'Settings', Icon: SettingsIcon }
@@ -53,8 +62,8 @@ function Sidebar({ activeMenu, setActiveMenu }) {
               <button
                 onClick={() => setActiveMenu(item.label)}
                 className={`w-full text-left px-4 lg:px-6 py-2 lg:py-3 flex items-center gap-2 lg:gap-3 font-semibold text-sm lg:text-base whitespace-nowrap ${activeMenu === item.label
-                    ? 'bg-[#305940] text-[#29cc6a]'
-                    : 'text-gray-300 hover:bg-[#305940] hover:text-[#29cc6a]'
+                  ? 'bg-[#305940] text-[#29cc6a]'
+                  : 'text-gray-300 hover:bg-[#305940] hover:text-[#29cc6a]'
                   }`}
               >
                 <item.Icon className="w-[18px] h-[18px] lg:w-[20px] lg:h-[20px] flex-shrink-0" />

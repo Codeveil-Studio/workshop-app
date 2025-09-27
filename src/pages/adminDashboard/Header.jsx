@@ -6,6 +6,14 @@ function DashboardIcon({ className = '' }) {
     )
 }
 
+function FilterIcon({ className = '' }) {
+    return (
+        <svg className={className} viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13.7999 9.97499L5.8249 1.99999H17.9999C18.4166 1.99999 18.7166 2.18332 18.8999 2.54999C19.0832 2.91665 19.0499 3.26665 18.7999 3.59999L13.7999 9.97499ZM18.7749 20.6L12.9999 14.825V17C12.9999 17.2833 12.9042 17.5207 12.7129 17.712C12.5209 17.904 12.2832 18 11.9999 18H9.9999C9.71657 18 9.47924 17.904 9.2879 17.712C9.0959 17.5207 8.9999 17.2833 8.9999 17V10.825L0.399902 2.22499L1.7999 0.799988L20.1999 19.2L18.7749 20.6Z" fill="CurrentColor" />
+        </svg>
+    )
+}
+
 function RefreshIcon({ className = '' }) {
     return (
         <svg className={className} viewBox="0 0 18 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -16,22 +24,50 @@ function RefreshIcon({ className = '' }) {
 
 import AdminNavbar from './AdminNavbar'
 
-function Header({ query, setQuery, onAddOrder }) {
+function OrdersIcon({ className = '' }) {
+    return (
+        <svg className={className} viewBox="0 0 26 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M25.7495 19.1558L18.4062 26.5122L14.8599 22.9526L16.0464 21.7661L18.4062 24.1128L24.563 17.9692L25.7495 19.1558ZM12.5 8.4375H7.4375V6.75H12.5V8.4375ZM12.5 11.8125H7.4375V10.125H12.5V11.8125ZM7.4375 13.5H12.5V15.1875H7.4375V13.5ZM5.75 8.4375H4.0625V6.75H5.75V8.4375ZM5.75 11.8125H4.0625V10.125H5.75V11.8125ZM4.0625 13.5H5.75V15.1875H4.0625V13.5ZM14.1875 8.4375V1.6875H2.375V25.3125H14.1875V27H0.6875V0H15.3872L22.625 7.23779V16.875L20.9375 18.5625V8.4375H14.1875ZM15.875 6.75H19.7378L15.875 2.88721V6.75Z" fill="CurrentColor" />
+        </svg>
+    )
+}
+
+function EditIcon({ className = '' }) {
+    return (
+        <svg className={className} viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.3 6.925L12.05 2.725L13.45 1.325C13.8333 0.941667 14.3043 0.75 14.863 0.75C15.421 0.75 15.8917 0.941667 16.275 1.325L17.675 2.725C18.0583 3.10833 18.2583 3.571 18.275 4.113C18.2917 4.65433 18.1083 5.11667 17.725 5.5L16.3 6.925ZM14.85 8.4L4.25 19H0V14.75L10.6 4.15L14.85 8.4Z" fill="CurrentColor" />
+        </svg>
+    )
+}
+
+function Header({ query, setQuery, onAddOrder, activeMenu, editingOrder }) {
     return (
         <>
             <AdminNavbar />
             {/* Main Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-8 py-4 sm:py-6 gap-4">
                 <div className="flex items-center gap-3 sm:gap-4">
-                    <DashboardIcon className="w-[32px] h-[32px] sm:w-[40px] sm:h-[40px] text-[#29cc6a]" />
+                    {editingOrder ? (
+                        <EditIcon className="w-[32px] h-[32px] sm:w-[30px] sm:h-[30px] text-[#29cc6a]" />
+                    ) : activeMenu === 'Orders' ? (
+                        <OrdersIcon className="w-[32px] h-[32px] sm:w-[30px] sm:h-[30px] text-[#29cc6a]" />
+                    ) : (
+                        <DashboardIcon className="w-[32px] h-[32px] sm:w-[30px] sm:h-[30px] text-[#29cc6a]" />
+                    )}
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-bold">Dashboard</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold">
+                            {editingOrder ? `Edit Order ${editingOrder.id}` : activeMenu}
+                        </h1>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
                     <div className="flex items-center gap-2 flex-1 sm:flex-none">
                         <button onClick={onAddOrder} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#305940] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
                             Add Order
+                        </button>
+                        <button className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#305940] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
+                            <span>Filters</span>
+                            <FilterIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                         <button onClick={() => window.location.reload()} className="bg-[#29cc6a] text-white p-2 rounded-lg hover:bg-[#305940] flex items-center justify-center">
                             <RefreshIcon className="w-5 h-5 sm:w-6 sm:h-6" />

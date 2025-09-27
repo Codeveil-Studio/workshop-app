@@ -1,16 +1,10 @@
-function KpiCard({ title, value, delta, color }) {
+function KpiCard({ title, value }) {
   return (
-    <div className="bg-white p-4 rounded-lg card-shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-xs text-gray-500">{title}</div>
-          <div className="text-2xl font-bold">{value.toLocaleString()}</div>
-        </div>
-        {/* <div className="text-sm text-gray-600">{delta}</div> */}
-      </div>
-      {/* <div className="mt-3 text-xs text-gray-400">Compared to last month</div> */}
+    <div className="bg-white border-t-2 border-[#29cc6a] rounded-sm p-4 text-center">
+      <div className="text-sm text-black">{title}</div>
+      <div className="text-2xl font-semibold mt-1">{value}</div>
     </div>
-  );
+  )
 }
 
-export default KpiCard;
+export default KpiCard
