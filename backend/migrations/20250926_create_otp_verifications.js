@@ -5,8 +5,10 @@ export async function up(knex) {
   await knex.schema.createTable('otp_verifications', (table) => {
     table.increments('id').primary();
     table.string('email').notNullable().index();
-    table.string('otp_code').notNullable();
+    table.string('otp_hash').notNullable();
     table.dateTime('expires_at').notNullable().index();
+    table.integer('attempts').defaultTo(0);
+    table.boolean('used').defaultTo(false);
     table.timestamps(true, true);
   });
 }
