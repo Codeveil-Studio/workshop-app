@@ -31,7 +31,7 @@ function ArrowIcon({ className = "" }) {
  */
 
 export default function WorkOrder({ settingsState, setSettingsState, onBack }) {
-    const [workOrderSetting, setWorkOrderSetting] = useState(null);
+    const workOrderSetting = settingsState.workOrderSetting
 
     const items = [
         "Add New Category",
@@ -42,17 +42,29 @@ export default function WorkOrder({ settingsState, setSettingsState, onBack }) {
 
     // If a work order setting is selected, show the corresponding component
     if (workOrderSetting === "Add New Category") {
-        return <EditActivityCard onBack={() => setWorkOrderSetting(null)} />;
+        return <EditActivityCard onBack={() => setSettingsState(prev => ({ ...prev, workOrderSetting: null }))} />;
     }
     if (workOrderSetting === "Edit Category") {
-        return <ActivitiesList onBack={() => setWorkOrderSetting(null)} />;
+        return <ActivitiesList 
+          settingsState={settingsState}
+          setSettingsState={setSettingsState}
+          onBack={() => setSettingsState(prev => ({ ...prev, workOrderSetting: null }))} 
+        />;
     }
     
     if (workOrderSetting === "Edit Word Order Details") {
-        return <EditWorkOrder  onBack={() => setWorkOrderSetting(null)} />;
+        return <EditWorkOrder  
+          settingsState={settingsState}
+          setSettingsState={setSettingsState}
+          onBack={() => setSettingsState(prev => ({ ...prev, workOrderSetting: null }))} 
+        />;
     }
     if (workOrderSetting === "Edit Paint Code Details") {
-        return <EditPaintCode  onBack={() => setWorkOrderSetting(null)} />;
+        return <EditPaintCode  
+          settingsState={settingsState}
+          setSettingsState={setSettingsState}
+          onBack={() => setSettingsState(prev => ({ ...prev, workOrderSetting: null }))} 
+        />;
     }
 
     return (
@@ -62,7 +74,7 @@ export default function WorkOrder({ settingsState, setSettingsState, onBack }) {
                     <li key={idx}>
                         <button
                             type="button"
-                            onClick={() => setWorkOrderSetting(item)}
+                            onClick={() => setSettingsState(prev => ({ ...prev, workOrderSetting: item }))}
                             className="w-full flex items-center justify-between px-6 py-5 text-left font-semibold hover:bg-gray-50 focus:outline-none"
                         >
                             <span className="text-base text-gray-700">{item}</span>

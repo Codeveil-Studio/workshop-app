@@ -41,16 +41,16 @@ export default function Settings({ settingsState, setSettingsState }) {
 
     // If Labor Rates is selected, show LaborRates
     if (settingsState.selectedSetting === "Labor Rates") {
-        return <LaborRates onBack={() => setSettingsState({ selectedSetting: null })} />;
+        return <LaborRates onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
     }
     if (settingsState.selectedSetting === "Price/Margin Management") {
-        return <PriceManagement onBack={() => setSettingsState({ selectedSetting: null })} />;
+        return <PriceManagement onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
     }
     if (settingsState.selectedSetting === "Work Order Settings") {
         return <WorkOrder 
           settingsState={settingsState}
           setSettingsState={setSettingsState}
-          onBack={() => setSettingsState({ selectedSetting: null })} 
+          onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} 
         />;
     }
 

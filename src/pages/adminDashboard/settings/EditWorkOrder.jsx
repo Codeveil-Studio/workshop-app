@@ -29,7 +29,7 @@ const ACTIVITIES = [
   { id: 4, name: "Oil Change" },
 ];
 
-export default function EditWorkOrder() {
+export default function EditWorkOrder({ settingsState, setSettingsState, onBack }) {
   const [search, setSearch] = useState("");
   const [fieldOpen, setFieldOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -44,7 +44,10 @@ export default function EditWorkOrder() {
     return (
       <EditWorkCategory 
         activity={editingActivity} 
-        onBack={() => setEditingActivity(null)} 
+        onBack={() => {
+          setEditingActivity(null);
+          setSettingsState(prev => ({ ...prev, editingActivity: null }));
+        }} 
       />
     );
   }
@@ -136,7 +139,10 @@ export default function EditWorkOrder() {
             <span className="text-sm font-semibold text-gray-900 text-base">{activity.name}</span>
             <button 
               className="text-sm font-medium text-[#29cc6a] hover:underline"
-              onClick={() => setEditingActivity(activity)}
+              onClick={() => {
+                setEditingActivity(activity);
+                setSettingsState(prev => ({ ...prev, editingActivity: activity }));
+              }}
             >
               Edit
             </button>

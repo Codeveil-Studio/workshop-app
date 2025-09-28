@@ -48,7 +48,9 @@ export default function AdminDashboard() {
     editingRole: null
   })
   const [settingsState, setSettingsState] = useState({
-    selectedSetting: null
+    selectedSetting: null,
+    workOrderSetting: null,
+    editingActivity: null
   })
 
   const handleAddOrder = () => {
@@ -254,11 +256,86 @@ export default function AdminDashboard() {
       <div className="flex flex-col lg:flex-row">
         <Sidebar activeMenu={activeMenu} setActiveMenu={handleMenuClick} />
         <div className="flex-1 lg:ml-0">
-          <Header
-            onAddOrder={handleAddOrder}
-            activeMenu={activeMenu}
-            editingOrder={isEditingRepair ? editingOrder : null}
-          />
+          {(() => {
+            let headerTitle = activeMenu
+            let headerIconKey = null
+
+            const baseIconMap = {
+              'Dashboard': 'dashboard',
+              'Orders': 'orders',
+              'User Management': 'users',
+              'User Roles': 'roles',
+              'Settings': 'settings'
+            }
+            headerIconKey = baseIconMap[activeMenu] || 'dashboard'
+
+            if (activeMenu === 'User Management') {
+              if (userManagementState.selectedContractor) {
+                headerTitle = 'Account Information'
+                headerIconKey = 'account'
+              } else if (userManagementState.activeSection === 'contractor') {
+                headerTitle = 'Contractor Management'
+                headerIconKey = 'contractor'
+              } else if (userManagementState.activeSection === 'technician') {
+                headerTitle = 'Technician Management'
+                headerIconKey = 'technician'
+              } else if (userManagementState.activeSection === 'supplier') {
+                headerTitle = 'Supplier Management'
+                headerIconKey = 'supplier'
+              } else {
+                headerTitle = 'User Management'
+                headerIconKey = 'users'
+              }
+            }
+
+            if (activeMenu === 'User Roles' && userRolesState.editingRole) {
+              headerTitle = 'Edit User Role'
+              headerIconKey = 'roles'
+            }
+
+            if (activeMenu === 'Settings') {
+              if (settingsState.editingActivity) {
+                headerTitle = settingsState.editingActivity.name
+                headerIconKey = 'settings'
+              } else if (settingsState.workOrderSetting) {
+                headerTitle = settingsState.workOrderSetting
+                headerIconKey = 'settings'
+              } else if (settingsState.selectedSetting === 'Work Order Settings') {
+                headerTitle = 'Work Order Settings'
+                headerIconKey = 'settings'
+              } else if (settingsState.selectedSetting === 'Labor Rates') {
+                headerTitle = 'Labor Rates'
+                headerIconKey = 'settings'
+              } else if (settingsState.selectedSetting === 'Price/Margin Management') {
+                headerTitle = 'Price/Margin Management'
+                headerIconKey = 'settings'
+              } else {
+                headerTitle = 'Settings'
+                headerIconKey = 'settings'
+              }
+            }
+
+            return (
+              <Header
+                onAddOrder={handleAddOrder}
+                activeMenu={activeMenu}
+                editingOrder={isEditingRepair ? editingOrder : null}
+                onBack={() => {
+                  if (activeMenu !== 'Settings') return
+                  if (settingsState.workOrderSetting) {
+                    setSettingsState(prev => ({ ...prev, workOrderSetting: null }))
+                    return
+                  }
+                  if (settingsState.selectedSetting) {
+                    setSettingsState(prev => ({ ...prev, selectedSetting: null }))
+                    return
+                  }
+                }}
+                headerTitle={headerTitle}
+                headerIconKey={headerIconKey}
+              />
+            )
+          })()}
           <main className="p-3 sm:p-4 lg:p-6">
             {renderContent()}
           </main>

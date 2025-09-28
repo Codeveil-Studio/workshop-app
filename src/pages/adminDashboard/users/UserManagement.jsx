@@ -62,7 +62,7 @@ function SupplierIcon({ className = '' }) {
 }
 
 export default function ManagementSection({ userManagementState, setUserManagementState }) {
-  if (userManagementState.activeSection === 'contractor') {
+  if (userManagementState.activeSection === 'contractor' || (userManagementState.activeSection === 'technician' || userManagementState.activeSection === 'supplier')) {
     return <ContractorManagement 
       userManagementState={userManagementState}
       setUserManagementState={setUserManagementState}
@@ -80,12 +80,12 @@ export default function ManagementSection({ userManagementState, setUserManageme
       <ManagementItem
         icon={TechnicianIcon}
         label="Technician Management"
-        onClick={() => setUserManagementState(prev => ({ ...prev, activeSection: 'contractor' }))}
+        onClick={() => setUserManagementState(prev => ({ ...prev, activeSection: 'technician' }))}
       />
       <ManagementItem
         icon={SupplierIcon}
         label="Supplier Management"
-        onClick={() => setUserManagementState(prev => ({ ...prev, activeSection: 'contractor' }))}
+        onClick={() => setUserManagementState(prev => ({ ...prev, activeSection: 'supplier' }))}
       />
     </div>
   );
