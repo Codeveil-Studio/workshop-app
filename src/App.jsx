@@ -7,6 +7,7 @@ import ForgotPassword from './pages/ForgotPassword.jsx'
 import Signup from './pages/signup.jsx'
 // import Dashboard from './pages/Dashboard.jsx'
 import AdminDashboard from './pages/adminDashboard/AdminDashboard.jsx'
+
 import ContractorDashboard from './pages/contractorDashboard.jsx'
 import Logs from './pages/Logs.jsx'
 import Reports from './pages/Reports.jsx'
