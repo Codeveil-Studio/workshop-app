@@ -9,7 +9,7 @@ import Signup from './pages/signup.jsx'
 import AdminDashboard from './pages/adminDashboard/AdminDashboard.jsx'
 import Logs from './pages/Logs.jsx'
 import Reports from './pages/Reports.jsx'
-import UserManagement from './pages/adminDashboard/UserManagement'
+import UserManagement from './pages/adminDashboard/users/UserManagement'
 
 
 function App() {

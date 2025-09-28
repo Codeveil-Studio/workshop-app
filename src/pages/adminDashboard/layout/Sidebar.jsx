@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import logoPng from '../../assets/logo.png'
+import logoPng from '../../../assets/logo.png'
 
 function DashboardIcon({ className = '' }) {
   return (

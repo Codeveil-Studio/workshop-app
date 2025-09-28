@@ -43,13 +43,12 @@ const ROLES = [
   { id: 4, name: "Supplier", users: 4 },
 ];
 
-export default function Roles() {
+export default function Roles({ userRolesState, setUserRolesState }) {
   const [search, setSearch] = useState("");
   const [sortOpen, setSortOpen] = useState(false);
   const [fieldOpen, setFieldOpen] = useState(false);
   const [sortField, setSortField] = useState("createdAt"); // demo only
   const [page, setPage] = useState(1);
-  const [editingRole, setEditingRole] = useState(null);
   const pageSize = 4;
 
   // filter roles
@@ -61,11 +60,11 @@ export default function Roles() {
   const pageData = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   // If editing a role, show the EditRole component
-  if (editingRole) {
+  if (userRolesState.editingRole) {
     return (
       <EditUser 
-        role={editingRole} 
-        onBack={() => setEditingRole(null)} 
+        role={userRolesState.editingRole} 
+        onBack={() => setUserRolesState({ editingRole: null })} 
       />
     );
   }
@@ -156,7 +155,7 @@ export default function Roles() {
             <button
               key={role.id}
               className="w-full flex items-center px-4 py-4 hover:bg-gray-50"
-              onClick={() => setEditingRole(role)}
+              onClick={() => setUserRolesState({ editingRole: role })}
             >
               <div className="flex-1 grid grid-cols-2">
                 <span className="text-gray-900 font-semibold text-base text-left">

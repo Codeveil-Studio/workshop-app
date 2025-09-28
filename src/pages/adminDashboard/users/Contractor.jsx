@@ -84,9 +84,10 @@ export default function Contractor({
   data = SAMPLE,
   pageSizeOptions = [3, 5, 10],
   defaultPageSize = 3,
+  userManagementState,
+  setUserManagementState,
+  onBack
 }) {
-  // Add selected contractor state
-  const [selectedContractor, setSelectedContractor] = useState(null);
 
   // UI state
   const [search, setSearch] = useState("");
@@ -159,12 +160,12 @@ export default function Contractor({
   }, [search, pageSize, sortField, sortDirection]);
 
   // If a contractor is selected, show their information
-  if (selectedContractor) {
+  if (userManagementState.selectedContractor) {
     return (
       <>
         <PersonalInformation 
-          contractor={selectedContractor}
-          onBack={() => setSelectedContractor(null)}
+          contractor={userManagementState.selectedContractor}
+          onBack={() => setUserManagementState(prev => ({ ...prev, selectedContractor: null }))}
         />
         <ChangePassword />
       </>
@@ -328,7 +329,7 @@ export default function Contractor({
             pageData.map((c) => (
               <button
                 key={c.id}
-                onClick={() => setSelectedContractor(c)}
+                onClick={() => setUserManagementState(prev => ({ ...prev, selectedContractor: c }))}
                 className="w-full text-left flex items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50"
               >
                 <div className="flex items-center gap-4">

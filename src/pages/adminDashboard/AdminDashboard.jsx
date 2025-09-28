@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import Sidebar from './Sidebar'
-import Header from './Header'
-import OrdersTable from './OrdersTable'
-import KpiCard from './KpiCard'
-import Sparkline from './Sparkline'
-import Modal from './Modal'
-import OrderEditor from './OrderEditor'
-import RepairForm from './RepairForm'
-import UserPanel from './UserPanel'
-import ManagementSection from './UserManagement'
-import Roles from './Roles'
-import Settings from './Settings'
+import Sidebar from './layout/Sidebar'
+import Header from './layout/Header'
+import OrdersTable from './orders/OrdersTable'
+import KpiCard from './components/KpiCard'
+import Sparkline from './components/Sparkline'
+import Modal from './components/Modal'
+import OrderEditor from './orders/OrderEditor'
+import RepairForm from './orders/RepairForm'
+import UserPanel from './components/UserPanel'
+import ManagementSection from './users/UserManagement'
+import Roles from './users/Roles'
+import Settings from './settings/Settings'
 
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard')
@@ -40,6 +40,16 @@ export default function AdminDashboard() {
   const [showModal, setShowModal] = useState(false)
   const [editingOrder, setEditingOrder] = useState(null)
   const [isEditingRepair, setIsEditingRepair] = useState(false)
+  const [userManagementState, setUserManagementState] = useState({
+    activeSection: 'main',
+    selectedContractor: null
+  })
+  const [userRolesState, setUserRolesState] = useState({
+    editingRole: null
+  })
+  const [settingsState, setSettingsState] = useState({
+    selectedSetting: null
+  })
 
   const handleAddOrder = () => {
     setEditingOrder(null)
@@ -158,22 +168,29 @@ export default function AdminDashboard() {
         )
       case 'User Management':
         return (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
-              <ManagementSection />
+              <ManagementSection 
+                userManagementState={userManagementState}
+                setUserManagementState={setUserManagementState}
+              />
             </div>
-          </div>
         )
       case 'User Roles':
         return (
           <div className="bg-white rounded-lg shadow">
-            <Roles />
+            <Roles 
+              userRolesState={userRolesState}
+              setUserRolesState={setUserRolesState}
+            />
           </div>
         )
       case 'Settings':
         return (
           <div className="bg-white rounded-lg shadow">
-            <Settings />
+            <Settings 
+              settingsState={settingsState}
+              setSettingsState={setSettingsState}
+            />
           </div>
         )
       default:
@@ -194,13 +211,41 @@ export default function AdminDashboard() {
         setIsEditingRepair(false)
         setEditingOrder(null)
       }
-      // Add similar conditions for other sections that have inner navigation
+      // If we're in User Management sub-sections, reset to main
+      if (menuItem === 'User Management' && (userManagementState.activeSection !== 'main' || userManagementState.selectedContractor)) {
+        setUserManagementState({
+          activeSection: 'main',
+          selectedContractor: null
+        })
+      }
+      // If we're in User Roles editing, reset to main
+      if (menuItem === 'User Roles' && userRolesState.editingRole) {
+        setUserRolesState({
+          editingRole: null
+        })
+      }
+      // If we're in Settings sub-sections, reset to main
+      if (menuItem === 'Settings' && settingsState.selectedSetting) {
+        setSettingsState({
+          selectedSetting: null
+        })
+      }
     } else {
       // If clicking a different menu item, set it as active
       setActiveMenu(menuItem)
       // Reset any editing states
       setIsEditingRepair(false)
       setEditingOrder(null)
+      setUserManagementState({
+        activeSection: 'main',
+        selectedContractor: null
+      })
+      setUserRolesState({
+        editingRole: null
+      })
+      setSettingsState({
+        selectedSetting: null
+      })
     }
   }
 

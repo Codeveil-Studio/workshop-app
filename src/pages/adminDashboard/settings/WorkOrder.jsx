@@ -1,8 +1,9 @@
 // Settings.jsx
 import React, { useState } from "react";
-import LaborRates from "./LaborRates";
-import PriceManagement from "./PriceManagement";
-import WorkOrder from "./WorkOrder";
+import ActivitiesList from "./ActivitiesList";
+import EditActivityCard from "./EditActivityCard";
+import EditPaintCode from "./EditPaintCode";
+import EditWorkOrder from "./EditWorkOrder";
 
 /**
  * Arrow icon as specified
@@ -29,26 +30,29 @@ function ArrowIcon({ className = "" }) {
  * Accent color: #29cc6a
  */
 
-export default function Settings() {
-    const [selectedSetting, setSelectedSetting] = useState(null);
+export default function WorkOrder({ settingsState, setSettingsState, onBack }) {
+    const [workOrderSetting, setWorkOrderSetting] = useState(null);
 
     const items = [
-        "General",
-        "Work Order Setting",
-        "Price/Margin Management",
-        "Labor Rates",
-        "Language",
+        "Add New Category",
+        "Edit Category",
+        "Edit Word Order Details",
+        "Edit Paint Code Details",
     ];
 
-    // If Labor Rates is selected, show LaborRates
-    if (selectedSetting === "Labor Rates") {
-        return <LaborRates onBack={() => setSelectedSetting(null)} />;
+    // If a work order setting is selected, show the corresponding component
+    if (workOrderSetting === "Add New Category") {
+        return <EditActivityCard onBack={() => setWorkOrderSetting(null)} />;
     }
-    if (selectedSetting === "Price/Margin Management") {
-        return <PriceManagement onBack={() => setSelectedSetting(null)} />;
+    if (workOrderSetting === "Edit Category") {
+        return <ActivitiesList onBack={() => setWorkOrderSetting(null)} />;
     }
-    if (selectedSetting === "Work Order Setting") {
-        return <WorkOrder onBack={() => setSelectedSetting(null)} />;
+    
+    if (workOrderSetting === "Edit Word Order Details") {
+        return <EditWorkOrder  onBack={() => setWorkOrderSetting(null)} />;
+    }
+    if (workOrderSetting === "Edit Paint Code Details") {
+        return <EditPaintCode  onBack={() => setWorkOrderSetting(null)} />;
     }
 
     return (
@@ -58,10 +62,10 @@ export default function Settings() {
                     <li key={idx}>
                         <button
                             type="button"
-                            onClick={() => setSelectedSetting(item)}
+                            onClick={() => setWorkOrderSetting(item)}
                             className="w-full flex items-center justify-between px-6 py-5 text-left font-semibold hover:bg-gray-50 focus:outline-none"
                         >
-                            <span className="text-base text-gray-900">{item}</span>
+                            <span className="text-base text-gray-700">{item}</span>
                             <ArrowIcon className="w-3.5 h-3.5 text-gray-800" />
                         </button>
                     </li>

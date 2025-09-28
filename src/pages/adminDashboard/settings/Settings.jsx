@@ -1,7 +1,8 @@
 // Settings.jsx
 import React, { useState } from "react";
-import ActivitiesList from "./ActivitiesList";
-// import PriceManagement from "./PriceManagement";
+import LaborRates from "./LaborRates";
+import PriceManagement from "./PriceManagement";
+import WorkOrder from "./WorkOrder";
 
 /**
  * Arrow icon as specified
@@ -28,23 +29,30 @@ function ArrowIcon({ className = "" }) {
  * Accent color: #29cc6a
  */
 
-export default function WorkOrder() {
-    const [selectedSetting, setSelectedSetting] = useState(null);
+export default function Settings({ settingsState, setSettingsState }) {
 
     const items = [
-        "Add New Category",
-        "Edit Category",
-        "Edit Word Order Details",
-        "Edit Paint Code Details",
+        "General",
+        "Work Order Settings",
+        "Price/Margin Management",
+        "Labor Rates",
+        "Language",
     ];
 
     // If Labor Rates is selected, show LaborRates
-    if (selectedSetting === "Edit Category") {
-        return <ActivitiesList onBack={() => setSelectedSetting(null)} />;
+    if (settingsState.selectedSetting === "Labor Rates") {
+        return <LaborRates onBack={() => setSettingsState({ selectedSetting: null })} />;
     }
-    // if (selectedSetting === "Price/Margin Management") {
-    //     return <PriceManagement onBack={() => setSelectedSetting(null)} />;
-    // }
+    if (settingsState.selectedSetting === "Price/Margin Management") {
+        return <PriceManagement onBack={() => setSettingsState({ selectedSetting: null })} />;
+    }
+    if (settingsState.selectedSetting === "Work Order Settings") {
+        return <WorkOrder 
+          settingsState={settingsState}
+          setSettingsState={setSettingsState}
+          onBack={() => setSettingsState({ selectedSetting: null })} 
+        />;
+    }
 
     return (
         <div className="bg-white rounded-lg shadow border-t-2 border-[#29cc6a] shadow-sm overflow-hidden">
@@ -53,10 +61,10 @@ export default function WorkOrder() {
                     <li key={idx}>
                         <button
                             type="button"
-                            onClick={() => setSelectedSetting(item)}
+                            onClick={() => setSettingsState({ selectedSetting: item })}
                             className="w-full flex items-center justify-between px-6 py-5 text-left font-semibold hover:bg-gray-50 focus:outline-none"
                         >
-                            <span className="text-base text-gray-700">{item}</span>
+                            <span className="text-base text-gray-900">{item}</span>
                             <ArrowIcon className="w-3.5 h-3.5 text-gray-800" />
                         </button>
                     </li>

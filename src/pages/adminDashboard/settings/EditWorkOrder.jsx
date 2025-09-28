@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import EditWorkCategory from "./EditWorkCategory";
 
 /* -------------------------
    Icons
@@ -22,20 +23,31 @@ function IconSort({ className = "w-5 h-5" }) {
    Sample activities data
    ------------------------- */
 const ACTIVITIES = [
-  { id: 1, name: "Activity 1" },
-  { id: 2, name: "Activity 2" },
-  { id: 3, name: "Activity 3" },
-  { id: 4, name: "Activity 4" },
+  { id: 1, name: "Engine Checkup" },
+  { id: 2, name: "Air Conditioning" },
+  { id: 3, name: "Brake" },
+  { id: 4, name: "Oil Change" },
 ];
 
-export default function ActivitiesList() {
+export default function EditWorkOrder() {
   const [search, setSearch] = useState("");
   const [fieldOpen, setFieldOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState(null);
 
   const filtered = ACTIVITIES.filter((a) =>
     a.name.toLowerCase().includes(search.trim().toLowerCase())
   );
+
+  // If editing an activity, show the EditCategory component
+  if (editingActivity) {
+    return (
+      <EditWorkCategory 
+        activity={editingActivity} 
+        onBack={() => setEditingActivity(null)} 
+      />
+    );
+  }
 
   return (
     <div className="w-full bg-white rounded-lg border-t-2 border-[#29cc6a]">
@@ -122,7 +134,10 @@ export default function ActivitiesList() {
             className="flex items-center justify-between px-4 py-4 hover:bg-gray-50"
           >
             <span className="text-sm font-semibold text-gray-900 text-base">{activity.name}</span>
-            <button className="text-sm font-medium text-[#29cc6a] hover:underline">
+            <button 
+              className="text-sm font-medium text-[#29cc6a] hover:underline"
+              onClick={() => setEditingActivity(activity)}
+            >
               Edit
             </button>
           </div>
