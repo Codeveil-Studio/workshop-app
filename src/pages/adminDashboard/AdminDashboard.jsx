@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import Sidebar from './Sidebar'
-import Header from './Header'
-import OrdersTable from './OrdersTable'
-import KpiCard from './KpiCard'
-import Sparkline from './Sparkline'
-import Modal from './Modal'
-import OrderEditor from './OrderEditor'
-import RepairForm from './RepairForm'
-import UserPanel from './UserPanel'
-import ManagementSection from './UserManagement'
-import Roles from './Roles'
-import Settings from './Settings'
+import Sidebar from './layout/Sidebar'
+import Header from './layout/Header'
+import OrdersTable from './orders/OrdersTable'
+import KpiCard from './components/KpiCard'
+import Sparkline from './components/Sparkline'
+import Modal from './components/Modal'
+import OrderEditor from './orders/OrderEditor'
+import RepairForm from './orders/RepairForm'
+import UserPanel from './components/UserPanel'
+import ManagementSection from './users/UserManagement'
+import Roles from './users/Roles'
+import Settings from './settings/Settings'
 
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard')
@@ -40,6 +40,18 @@ export default function AdminDashboard() {
   const [showModal, setShowModal] = useState(false)
   const [editingOrder, setEditingOrder] = useState(null)
   const [isEditingRepair, setIsEditingRepair] = useState(false)
+  const [userManagementState, setUserManagementState] = useState({
+    activeSection: 'main',
+    selectedContractor: null
+  })
+  const [userRolesState, setUserRolesState] = useState({
+    editingRole: null
+  })
+  const [settingsState, setSettingsState] = useState({
+    selectedSetting: null,
+    workOrderSetting: null,
+    editingActivity: null
+  })
 
   const handleAddOrder = () => {
     setEditingOrder(null)
@@ -158,22 +170,29 @@ export default function AdminDashboard() {
         )
       case 'User Management':
         return (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
-              <ManagementSection />
+              <ManagementSection 
+                userManagementState={userManagementState}
+                setUserManagementState={setUserManagementState}
+              />
             </div>
-          </div>
         )
       case 'User Roles':
         return (
           <div className="bg-white rounded-lg shadow">
-            <Roles />
+            <Roles 
+              userRolesState={userRolesState}
+              setUserRolesState={setUserRolesState}
+            />
           </div>
         )
       case 'Settings':
         return (
           <div className="bg-white rounded-lg shadow">
-            <Settings />
+            <Settings 
+              settingsState={settingsState}
+              setSettingsState={setSettingsState}
+            />
           </div>
         )
       default:
@@ -194,13 +213,41 @@ export default function AdminDashboard() {
         setIsEditingRepair(false)
         setEditingOrder(null)
       }
-      // Add similar conditions for other sections that have inner navigation
+      // If we're in User Management sub-sections, reset to main
+      if (menuItem === 'User Management' && (userManagementState.activeSection !== 'main' || userManagementState.selectedContractor)) {
+        setUserManagementState({
+          activeSection: 'main',
+          selectedContractor: null
+        })
+      }
+      // If we're in User Roles editing, reset to main
+      if (menuItem === 'User Roles' && userRolesState.editingRole) {
+        setUserRolesState({
+          editingRole: null
+        })
+      }
+      // If we're in Settings sub-sections, reset to main
+      if (menuItem === 'Settings' && settingsState.selectedSetting) {
+        setSettingsState({
+          selectedSetting: null
+        })
+      }
     } else {
       // If clicking a different menu item, set it as active
       setActiveMenu(menuItem)
       // Reset any editing states
       setIsEditingRepair(false)
       setEditingOrder(null)
+      setUserManagementState({
+        activeSection: 'main',
+        selectedContractor: null
+      })
+      setUserRolesState({
+        editingRole: null
+      })
+      setSettingsState({
+        selectedSetting: null
+      })
     }
   }
 
@@ -209,11 +256,86 @@ export default function AdminDashboard() {
       <div className="flex flex-col lg:flex-row">
         <Sidebar activeMenu={activeMenu} setActiveMenu={handleMenuClick} />
         <div className="flex-1 lg:ml-0">
-          <Header
-            onAddOrder={handleAddOrder}
-            activeMenu={activeMenu}
-            editingOrder={isEditingRepair ? editingOrder : null}
-          />
+          {(() => {
+            let headerTitle = activeMenu
+            let headerIconKey = null
+
+            const baseIconMap = {
+              'Dashboard': 'dashboard',
+              'Orders': 'orders',
+              'User Management': 'users',
+              'User Roles': 'roles',
+              'Settings': 'settings'
+            }
+            headerIconKey = baseIconMap[activeMenu] || 'dashboard'
+
+            if (activeMenu === 'User Management') {
+              if (userManagementState.selectedContractor) {
+                headerTitle = 'Account Information'
+                headerIconKey = 'account'
+              } else if (userManagementState.activeSection === 'contractor') {
+                headerTitle = 'Contractor Management'
+                headerIconKey = 'contractor'
+              } else if (userManagementState.activeSection === 'technician') {
+                headerTitle = 'Technician Management'
+                headerIconKey = 'technician'
+              } else if (userManagementState.activeSection === 'supplier') {
+                headerTitle = 'Supplier Management'
+                headerIconKey = 'supplier'
+              } else {
+                headerTitle = 'User Management'
+                headerIconKey = 'users'
+              }
+            }
+
+            if (activeMenu === 'User Roles' && userRolesState.editingRole) {
+              headerTitle = 'Edit User Role'
+              headerIconKey = 'roles'
+            }
+
+            if (activeMenu === 'Settings') {
+              if (settingsState.editingActivity) {
+                headerTitle = settingsState.editingActivity.name
+                headerIconKey = 'settings'
+              } else if (settingsState.workOrderSetting) {
+                headerTitle = settingsState.workOrderSetting
+                headerIconKey = 'settings'
+              } else if (settingsState.selectedSetting === 'Work Order Settings') {
+                headerTitle = 'Work Order Settings'
+                headerIconKey = 'settings'
+              } else if (settingsState.selectedSetting === 'Labor Rates') {
+                headerTitle = 'Labor Rates'
+                headerIconKey = 'settings'
+              } else if (settingsState.selectedSetting === 'Price/Margin Management') {
+                headerTitle = 'Price/Margin Management'
+                headerIconKey = 'settings'
+              } else {
+                headerTitle = 'Settings'
+                headerIconKey = 'settings'
+              }
+            }
+
+            return (
+              <Header
+                onAddOrder={handleAddOrder}
+                activeMenu={activeMenu}
+                editingOrder={isEditingRepair ? editingOrder : null}
+                onBack={() => {
+                  if (activeMenu !== 'Settings') return
+                  if (settingsState.workOrderSetting) {
+                    setSettingsState(prev => ({ ...prev, workOrderSetting: null }))
+                    return
+                  }
+                  if (settingsState.selectedSetting) {
+                    setSettingsState(prev => ({ ...prev, selectedSetting: null }))
+                    return
+                  }
+                }}
+                headerTitle={headerTitle}
+                headerIconKey={headerIconKey}
+              />
+            )
+          })()}
           <main className="p-3 sm:p-4 lg:p-6">
             {renderContent()}
           </main>

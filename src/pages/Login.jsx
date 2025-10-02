@@ -33,6 +33,10 @@ export default function Login() {
         navigate('/contractordashboard');
         return;
       }
+      if (role === 'admin') {
+        navigate('/adminDashboard');
+        return;
+      }
       alert('Login successful');
     } catch (err) {
       setError(err.message);
@@ -61,7 +65,7 @@ export default function Login() {
           {error ? <div className="text-red-600 text-sm">{error}</div> : null}
           <input
             type="text"
-            placeholder="Email / phone number"
+            placeholder="Email Address"
             value={email}
             onChange={(e)=>setEmail(e.target.value)}
             className="w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"

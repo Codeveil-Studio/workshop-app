@@ -75,7 +75,7 @@ export default function Signup() {
       }
       setOtpModalOpen(false);
       alert("Account created successfully");
-      window.location.href = data?.redirect || "/login";
+      window.location.href = data?.redirect || "/loginselection";
     } catch (err) {
       setOtpError(err.message);
     }
@@ -184,7 +184,7 @@ export default function Signup() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{" "}
-          <Link to="/login" className="text-green-600 font-medium hover:underline">
+          <Link to="/loginselection" className="text-green-600 font-medium hover:underline">
             Login
           </Link>
         </p>
@@ -231,11 +231,11 @@ export default function Signup() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <button
                   onClick={handleResendOtp}
-                  disabled={cooldown>0}
+                  disabled={cooldown > 0}
                   className="px-4 py-2 border rounded-lg text-sm w-full sm:w-auto disabled:opacity-50"
-                  title={cooldown>0 ? `Please wait ${cooldown}s` : "Resend OTP"}
+                  title={cooldown > 0 ? `Please wait ${cooldown}s` : "Resend OTP"}
                 >
-                  {cooldown>0 ? `Resend (${cooldown}s)` : "Resend OTP"}
+                  {cooldown > 0 ? `Resend (${cooldown}s)` : "Resend OTP"}
                 </button>
                 <div className="text-xs text-gray-500 text-center sm:text-right w-full sm:w-auto">OTP expires in 1 minutes</div>
               </div>

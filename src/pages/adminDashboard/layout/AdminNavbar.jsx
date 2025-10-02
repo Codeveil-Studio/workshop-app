@@ -1,4 +1,4 @@
-import profilePic from '../../assets/images/profile.jpg'
+import profilePic from '../../../assets/images/profile.jpg'
 
 function AdminNavbar() {
   return (

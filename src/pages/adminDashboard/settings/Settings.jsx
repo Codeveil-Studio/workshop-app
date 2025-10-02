@@ -29,26 +29,29 @@ function ArrowIcon({ className = "" }) {
  * Accent color: #29cc6a
  */
 
-export default function Settings() {
-    const [selectedSetting, setSelectedSetting] = useState(null);
+export default function Settings({ settingsState, setSettingsState }) {
 
     const items = [
         "General",
-        "Work Order Setting",
+        "Work Order Settings",
         "Price/Margin Management",
         "Labor Rates",
         "Language",
     ];
 
     // If Labor Rates is selected, show LaborRates
-    if (selectedSetting === "Labor Rates") {
-        return <LaborRates onBack={() => setSelectedSetting(null)} />;
+    if (settingsState.selectedSetting === "Labor Rates") {
+        return <LaborRates onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
     }
-    if (selectedSetting === "Price/Margin Management") {
-        return <PriceManagement onBack={() => setSelectedSetting(null)} />;
+    if (settingsState.selectedSetting === "Price/Margin Management") {
+        return <PriceManagement onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
     }
-    if (selectedSetting === "Work Order Setting") {
-        return <WorkOrder onBack={() => setSelectedSetting(null)} />;
+    if (settingsState.selectedSetting === "Work Order Settings") {
+        return <WorkOrder 
+          settingsState={settingsState}
+          setSettingsState={setSettingsState}
+          onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} 
+        />;
     }
 
     return (
@@ -58,7 +61,7 @@ export default function Settings() {
                     <li key={idx}>
                         <button
                             type="button"
-                            onClick={() => setSelectedSetting(item)}
+                            onClick={() => setSettingsState({ selectedSetting: item })}
                             className="w-full flex items-center justify-between px-6 py-5 text-left font-semibold hover:bg-gray-50 focus:outline-none"
                         >
                             <span className="text-base text-gray-900">{item}</span>

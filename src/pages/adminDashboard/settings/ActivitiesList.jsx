@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import EditCategory from "./EditCategory";
 
 /* -------------------------
    Icons
@@ -28,14 +29,28 @@ const ACTIVITIES = [
   { id: 4, name: "Activity 4" },
 ];
 
-export default function ActivitiesList() {
+export default function ActivitiesList({ settingsState, setSettingsState, onBack }) {
   const [search, setSearch] = useState("");
   const [fieldOpen, setFieldOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState(null);
 
   const filtered = ACTIVITIES.filter((a) =>
     a.name.toLowerCase().includes(search.trim().toLowerCase())
   );
+
+  // If editing an activity, show the EditCategory component
+  if (editingActivity) {
+    return (
+      <EditCategory 
+        activity={editingActivity} 
+        onBack={() => {
+          setEditingActivity(null);
+          setSettingsState(prev => ({ ...prev, editingActivity: null }));
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="w-full bg-white rounded-lg border-t-2 border-[#29cc6a]">
@@ -122,7 +137,13 @@ export default function ActivitiesList() {
             className="flex items-center justify-between px-4 py-4 hover:bg-gray-50"
           >
             <span className="text-sm font-semibold text-gray-900 text-base">{activity.name}</span>
-            <button className="text-sm font-medium text-[#29cc6a] hover:underline">
+            <button 
+              className="text-sm font-medium text-[#29cc6a] hover:underline"
+              onClick={() => {
+                setEditingActivity(activity);
+                setSettingsState(prev => ({ ...prev, editingActivity: activity }));
+              }}
+            >
               Edit
             </button>
           </div>
