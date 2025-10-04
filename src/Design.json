@@ -1,0 +1,121 @@
+{
+    "design_system": {
+      "foundations": {
+        "colors": {
+          "primary": "#0A84FF",
+          "secondary": "#34C759",
+          "accent": "#FF9500",
+          "background_light": "#FFFFFF",
+          "background_dark": "#F4F5F7",
+          "text_primary": "#111111",
+          "text_secondary": "#6B6B6B",
+          "status_colors": {
+            "success": "#34C759",
+            "warning": "#FFCC00",
+            "error": "#FF3B30",
+            "info": "#5AC8FA"
+          }
+        },
+        "typography": {
+          "font_family": "Inter, Roboto, sans-serif",
+          "heading": {
+            "h1": { "size": 24, "weight": 700, "line_height": 1.4 },
+            "h2": { "size": 20, "weight": 600, "line_height": 1.4 },
+            "h3": { "size": 18, "weight": 600, "line_height": 1.4 }
+          },
+          "body": {
+            "regular": { "size": 14, "weight": 400, "line_height": 1.6 },
+            "medium": { "size": 16, "weight": 500, "line_height": 1.6 }
+          },
+          "caption": { "size": 12, "weight": 400, "line_height": 1.4 }
+        },
+        "spacing": {
+          "xs": 4,
+          "sm": 8,
+          "md": 16,
+          "lg": 24,
+          "xl": 32
+        },
+        "radius": {
+          "small": 4,
+          "medium": 8,
+          "large": 16
+        },
+        "shadows": {
+          "card": "0 1px 3px rgba(0,0,0,0.1)",
+          "modal": "0 4px 12px rgba(0,0,0,0.15)"
+        }
+      },
+      "layout": {
+        "grid": {
+          "columns": 12,
+          "gutter": 16,
+          "margin": 24
+        },
+        "navigation": {
+          "bottom_nav": true,
+          "side_menu": true,
+          "tabs": true
+        }
+      },
+      "components": {
+        "buttons": {
+          "variants": ["primary", "secondary", "outlined", "text"],
+          "shapes": ["rounded", "pill"],
+          "sizes": ["small", "medium", "large"]
+        },
+        "inputs": {
+          "types": ["text", "email", "password", "dropdown", "date"],
+          "states": ["default", "focus", "error", "disabled"],
+          "design": "outlined with subtle fill and rounded corners"
+        },
+        "cards": {
+          "elevation": "medium",
+          "padding": "md",
+          "usage": ["work order summaries", "profile info", "notifications"]
+        },
+        "modals": {
+          "header_style": "bold title with close icon",
+          "footer_style": "actions aligned right"
+        },
+        "lists": {
+          "types": ["vertical", "segmented"],
+          "content": "icons, text, status badges"
+        },
+        "status_tags": {
+          "styles": ["pill-shaped badges"],
+          "colors": {
+            "active": "primary",
+            "in_progress": "accent",
+            "completed": "success",
+            "declined": "error"
+          }
+        },
+        "charts": {
+          "types": ["line", "bar"],
+          "design": "minimal, clean grid, light axis labels"
+        }
+      },
+      "interactions": {
+        "feedback": {
+          "snackbar": "bottom, temporary messages",
+          "modal_confirmation": true
+        },
+        "navigation_patterns": {
+          "stepper": "used in multi-step forms",
+          "back_navigation": "top-left icon"
+        },
+        "gestures": {
+          "swipe": "for dismissing or switching tabs",
+          "tap": "primary action"
+        }
+      },
+      "usage_principles": {
+        "consistency": "Use same spacing, typography, and colors across all screens",
+        "hierarchy": "Emphasize primary actions with bold color, secondary actions subdued",
+        "clarity": "Forms and work orders structured with clear labeling and sections",
+        "scalability": "Components designed modularly to be reused across multiple user roles"
+      }
+    }
+  }
+  
