@@ -389,6 +389,10 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
     setActiveTab("notifications");
   };
 
+  const handleDashboardClick = () => {
+    setActiveTab("home");
+  };
+
   const handleSubmitWorkOrder = () => {
     // Create new work order from wizard data
     const newWorkOrder = {
@@ -656,6 +660,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
                   onCreateClick={handleCreateClick}
                   onOrdersClick={handleOrdersClick}
                   onNotificationsClick={handleNotificationsClick}
+                  onDashboardClick={handleDashboardClick}
                 />
                 <WorkOrderPreview 
                   selectedWorkOrder={selectedWorkOrder} 

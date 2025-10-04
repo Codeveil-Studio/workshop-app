@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function QuickActions({ activeTab, onCreateClick, onOrdersClick, onNotificationsClick }) {
+export default function QuickActions({ activeTab, onCreateClick, onOrdersClick, onNotificationsClick, onDashboardClick }) {
   return (
     <div className="bg-white p-3 sm:p-4 rounded-xl shadow">
       <div className="flex justify-between items-center mb-2">
@@ -11,6 +11,16 @@ export default function QuickActions({ activeTab, onCreateClick, onOrdersClick, 
         <div className="text-xs text-gray-400">•••</div>
       </div>
       <div className="flex flex-col gap-2 mt-3">
+        <button 
+          onClick={onDashboardClick} 
+          className={`w-full px-3 py-2 text-sm rounded ${
+            activeTab === "home" 
+              ? "bg-green-50 text-green-600" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          Dashboard
+        </button>
         <button 
           onClick={onCreateClick} 
           className={`w-full px-3 py-2 text-sm rounded ${
