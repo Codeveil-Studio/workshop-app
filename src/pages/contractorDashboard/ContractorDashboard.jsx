@@ -39,7 +39,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
-  
+
   // Notifications state
   const [notifications, setNotifications] = useState([
     { id: 1, text: "New work order assigned", time: "2 hours ago", read: false },
@@ -48,38 +48,36 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
     { id: 4, text: "Maintenance reminder: BMW X5", time: "1 day ago", read: false },
     { id: 5, text: "Parts delivery scheduled", time: "4 hours ago", read: false },
   ]);
-  
-  // Toast notification system
+
+  // Toast functionality
   const showToast = (msg, ms = 3000) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(msg);
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
-  
-  // Notification functions
+
+  // Notification handlers
   const markAllNotificationsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     showToast("All notifications marked as read");
   };
-  
+
   const markNotificationRead = (id) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
-    showToast("Notification marked as read");
+    setNotifications(prev => 
+      prev.map(n => n.id === id ? { ...n, read: true } : n)
+    );
   };
-  
+
   const clearAllNotifications = () => {
     setNotifications([]);
     showToast("All notifications cleared");
   };
-  
+
   const clearNotification = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-    showToast("Notification removed");
+    setNotifications(prev => prev.filter(n => n.id !== id));
   };
-  
-  // Cleanup timers
+
+  // Cleanup toast timer
   useEffect(() => {
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);

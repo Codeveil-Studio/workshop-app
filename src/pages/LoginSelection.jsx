@@ -34,6 +34,14 @@ function ConsultantIcon({ className = '' }) {
     </svg>
   )
 }
+
+function AdminIcon({ className = '' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 6.5V8.5C15 9.3 14.3 10 13.5 10S12 9.3 12 8.5V6.5L6 7V9C6 9.6 6.4 10 7 10V20C7 20.6 7.4 21 8 21H10C10.6 21 11 20.6 11 20V16C11 15.4 11.4 15 12 15S13 15.4 13 16V20C13 20.6 13.4 21 14 21H16C16.6 21 17 20.6 17 20V10C17.6 10 18 9.6 18 9Z" fill="currentColor"/>
+    </svg>
+  )
+}
 function ArrowIcon({ className = '' }) {
   return (
     <svg className={className} viewBox="0 0 14 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -69,7 +77,7 @@ export default function LoginSelection() {
         <div className="flex flex-col gap-3">
           <button
             onClick={() => go('contractor')}
-            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors"
+            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3">
               <ContractorIcon className="w-6 h-6 group-hover:text-[#29cc6a]" />
@@ -80,7 +88,7 @@ export default function LoginSelection() {
 
           <button
             onClick={() => go('technician')}
-            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors"
+            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3">
               <TechnicianIcon className="w-6 h-6 font-bold group-hover:text-[#29cc6a]" />
@@ -91,7 +99,7 @@ export default function LoginSelection() {
 
           <button
             onClick={() => go('supplier')}
-            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors"
+            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3">
               <SupplierIcon className="w-6 h-6 text-black group-hover:text-[#29cc6a]" />
@@ -102,11 +110,22 @@ export default function LoginSelection() {
 
           <button
             onClick={() => go('consultant')}
-            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors"
+            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-3">
               <ConsultantIcon className="w-6 h-6 group-hover:text-[#29cc6a]" />
               <span>Login As Consultant</span>
+            </span>
+            <ArrowIcon className="w-4 h-4 group-hover:text-[#29cc6a] transition-transform group-hover:translate-x-1" />
+          </button>
+
+          <button
+            onClick={() => go('admin')}
+            className="group flex items-center justify-between py-3 px-4 font-bold hover:text-[#29cc6a] transition-colors border-t border-gray-200 pt-4 mt-2 cursor-pointer"
+          >
+            <span className="flex items-center gap-3">
+              <AdminIcon className="w-6 h-6 group-hover:text-[#29cc6a]" />
+              <span>Login As Admin</span>
             </span>
             <ArrowIcon className="w-4 h-4 group-hover:text-[#29cc6a] transition-transform group-hover:translate-x-1" />
           </button>

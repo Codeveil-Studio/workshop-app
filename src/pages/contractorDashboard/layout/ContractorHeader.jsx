@@ -71,10 +71,10 @@ export default function ContractorHeader({
               </div>
               <div className="max-h-64 overflow-auto">
                 {notifications.length === 0 && <div className="p-4 text-sm text-gray-500">No notifications</div>}
-                {notifications.map((n) => (
-                  <div key={n.id} className={`p-3 border-b ${n.read ? "bg-white" : "bg-gray-50"}`}>
+                {notifications.map(n => (
+                  <div key={n.id} className={`p-3 border-b last:border-b-0 ${n.read ? 'bg-gray-50' : 'bg-white'}`}>
                     <div className="text-sm">{n.text}</div>
-                    <div className="text-xs text-gray-400">{n.time}</div>
+                    <div className="text-xs text-gray-400 mt-1">{n.time}</div>
                   </div>
                 ))}
               </div>
