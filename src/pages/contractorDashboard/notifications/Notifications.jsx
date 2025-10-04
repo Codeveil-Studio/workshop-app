@@ -1,5 +1,4 @@
 import React from "react";
-<<<<<<< HEAD
 import { Check, Trash2 } from "lucide-react";
 
 export default function Notifications({ notifications = [], onMarkRead, onClearAll, onClearOne }) {
@@ -30,7 +29,7 @@ export default function Notifications({ notifications = [], onMarkRead, onClearA
           {notifications.map((notification) => (
             <div 
               key={notification.id} 
-              className={`p-3 border rounded-lg flex items-start justify-between ${notification.read ? 'bg-white' : 'bg-green-50'}`}
+              className={`p-3 border border-gray-200 rounded-lg flex items-start justify-between ${notification.read ? 'bg-white' : 'bg-green-50'}`}
             >
               <div>
                 <div className="text-sm font-medium">{notification.text}</div>
@@ -58,14 +57,6 @@ export default function Notifications({ notifications = [], onMarkRead, onClearA
           ))}
         </div>
       )}
-=======
-
-export default function Notifications() {
-  return (
-    <div className="bg-white p-6 rounded-xl shadow">
-      <h3 className="text-lg font-semibold mb-2">Notifications</h3>
-      <div className="text-sm text-gray-500">You have no new notifications.</div>
->>>>>>> f2410c32a70fcacd8f256fc63c6ea2c7d2cc7461
     </div>
   );
 }

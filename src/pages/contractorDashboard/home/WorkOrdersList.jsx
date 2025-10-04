@@ -9,14 +9,14 @@ export default function WorkOrdersList({ workOrders, selectedWorkOrder, setSelec
         <button className="text-sm text-green-600 hover:underline">See all</button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {workOrders.map((wo) => (
           <div
             key={wo.id}
             onClick={() => { setSelectedWorkOrder(wo); }}
             className={`bg-white rounded-xl shadow p-3 cursor-pointer hover:shadow-lg transition ${selectedWorkOrder?.id === wo.id ? "ring-2 ring-green-100" : ""}`}
           >
-            <div className="w-full h-36 overflow-hidden rounded-md mb-3">
+            <div className="w-full h-32 sm:h-36 overflow-hidden rounded-md mb-3">
               <img src={wo.image + "&auto=format&fit=crop&w=800&q=60"} alt={`#${wo.id}`} className="w-full h-full object-cover" />
             </div>
             <div className="flex items-center justify-between">

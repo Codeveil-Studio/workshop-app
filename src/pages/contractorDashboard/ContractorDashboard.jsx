@@ -105,12 +105,12 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
 
   // sample work types (matching the wireframe with small images)
   const initialWorkTypes = [
-    { id: "engine", title: "Engine", img: "https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&q=60", qty: 0 },
-    { id: "brakes", title: "Brakes", img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=600&q=60", qty: 0 },
-    { id: "electrical", title: "Electrical", img: "https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&q=60", qty: 0 },
-    { id: "suspension", title: "Suspension", img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=600&q=60", qty: 0 },
-    { id: "hvac", title: "HVAC", img: "https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&q=60", qty: 0 },
-    { id: "others", title: "Other", img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=600&q=60", qty: 0 },
+    { id: "engine", title: "Engine", img: "https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&q=60", selected: false },
+    { id: "brakes", title: "Brakes", img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=600&q=60", selected: false },
+    { id: "electrical", title: "Electrical", img: "https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&q=60", selected: false },
+    { id: "suspension", title: "Suspension", img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=600&q=60", selected: false },
+    { id: "hvac", title: "HVAC", img: "https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&q=60", selected: false },
+    { id: "others", title: "Other", img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=600&q=60", selected: false },
   ];
   const [workTypes, setWorkTypes] = useState(initialWorkTypes);
 
@@ -136,8 +136,8 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
     },
   });
 
-  // sample work orders for the Home grid with extended data for invoice functionality
-  const workOrders = [
+  // work orders state with initial sample data for the Home grid with extended data for invoice functionality
+  const [workOrders, setWorkOrders] = useState([
     { 
       id: 7836, 
       image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60", 
@@ -148,6 +148,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       phone: "555-123-4567",
       vin: "WBA12345678901234",
       date: "2023-07-03",
+      status: "Open",
       items: [
         { desc: "Oil Change", qty: 1, price: 89.99 },
         { desc: "Air Filter", qty: 1, price: 45.50 },
@@ -163,6 +164,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       phone: "555-987-6543",
       vin: "WAU98765432109876",
       date: "2023-06-28",
+      status: "Open",
       items: [
         { desc: "Brake Pads", qty: 2, price: 120.00 },
         { desc: "Labor", qty: 1, price: 150.00 },
@@ -178,6 +180,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       phone: "555-456-7890",
       vin: "JT765432109876543",
       date: "2023-07-01",
+      status: "Open",
       items: [
         { desc: "Timing Belt", qty: 1, price: 180.00 },
         { desc: "Water Pump", qty: 1, price: 95.00 },
@@ -194,6 +197,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       phone: "555-234-5678",
       vin: "1FT8765432109876",
       date: "2023-06-25",
+      status: "Open",
       items: [
         { desc: "Suspension Check", qty: 1, price: 75.00 },
       ]
@@ -208,6 +212,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       phone: "555-345-6789",
       vin: "2HG876543210987",
       date: "2023-07-02",
+      status: "Open",
       items: [
         { desc: "AC Repair", qty: 1, price: 250.00 },
         { desc: "Refrigerant", qty: 1, price: 65.00 },
@@ -223,12 +228,13 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       phone: "555-567-8901",
       vin: "WDD98765432109",
       date: "2023-06-30",
+      status: "Open",
       items: [
         { desc: "Diagnostic", qty: 1, price: 120.00 },
         { desc: "Software Update", qty: 1, price: 85.00 },
       ]
     },
-  ];
+  ]);
 
   // Ongoing work sample (small avatars)
   const ongoing = [
@@ -302,9 +308,9 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
     );
   }, [workOrders, query]);
 
-  // Helpers: workTypes qty change
-  function changeWorkTypeQty(id, delta) {
-    setWorkTypes((prev) => prev.map((w) => (w.id === id ? { ...w, qty: Math.max(0, w.qty + delta) } : w)));
+  // Helpers: workTypes selection toggle
+  function toggleWorkTypeSelection(id) {
+    setWorkTypes((prev) => prev.map((w) => (w.id === id ? { ...w, selected: !w.selected } : w)));
   }
 
   // Parts cart helpers
@@ -328,12 +334,12 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
     // parts cart entries
     const parts = partsCart.map((p) => ({ id: p.id, title: p.title, qty: p.qty, unit: p.price, total: p.qty * p.price }));
     // labour/activity (simple fixed labour per selected workType)
-    const labour = workTypes.filter((w) => w.qty > 0).map((w) => ({
+    const labour = workTypes.filter((w) => w.selected).map((w) => ({
       id: `labour-${w.id}`,
       title: `${w.title} (labour)`,
-      qty: w.qty,
+      qty: 1,
       unit: 60, // example labour rate per unit
-      total: w.qty * 60,
+      total: 60,
     }));
     // other derived items (e.g., activity checks)
     const repairs = [];
@@ -384,8 +390,31 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
   };
 
   const handleSubmitWorkOrder = () => {
-    // Submit mock
-    alert("Work Order Created — (mock). Resetting wizard.");
+    // Create new work order from wizard data
+    const newWorkOrder = {
+      id: Math.floor(Math.random() * 9000) + 1000, // Generate random 4-digit ID
+      image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60", // Default image
+      make: vehicle.make || "Unknown",
+      model: vehicle.model || "Unknown",
+      year: vehicle.year || new Date().getFullYear(),
+      customerName: customer.name || "Unknown Customer",
+      phone: customer.phone || "",
+      vin: vehicle.vin || "",
+      date: new Date().toISOString().split('T')[0],
+      status: "Open",
+      items: [
+        ...partsCart.map(part => ({ desc: part.title, qty: part.qty, price: part.price })),
+        { desc: "Labor", qty: 1, price: 60 } // Default labor charge
+      ]
+    };
+
+    // Add to work orders list
+    setWorkOrders(prev => [newWorkOrder, ...prev]);
+    
+    // Show success message
+    setToast("Work Order Created Successfully!");
+    
+    // Reset wizard and go to home
     resetWizard();
     setActiveTab("home");
   };
@@ -396,7 +425,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       case 1:
         return <CustomerInfo customer={customer} setCustomer={setCustomer} vehicle={vehicle} setVehicle={setVehicle} />;
       case 2:
-        return <WorkTypes workTypes={workTypes} changeWorkTypeQty={changeWorkTypeQty} />;
+        return <WorkTypes workTypes={workTypes} toggleWorkTypeSelection={toggleWorkTypeSelection} />;
       case 3:
         return <SpareParts spareCatalog={spareCatalog} partsCart={partsCart} addPartToCart={addPartToCart} changeCartQty={changeCartQty} />;
       case 4:
@@ -498,54 +527,143 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
     }
 
     if (activeTab === "orders") {
-      return <Orders />;
+      return <Orders workOrders={workOrders} setWorkOrders={setWorkOrders} selectedWorkOrder={selectedWorkOrder} setSelectedWorkOrder={setSelectedWorkOrder} />;
     }
 
     return null;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex text-gray-800">
-      {/* LEFT: rounded vertical navigation card */}
-      <ContractorSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
-
-      {/* RIGHT: main content */}
-      <div className="flex-1 p-8">
-        {/* TOP row (search + small actions) */}
-        <ContractorHeader 
-          user={user} 
-          onCreateClick={handleCreateClick} 
-          query={query} 
-          setQuery={setQuery} 
-          notifications={notifications}
-          markAllRead={markAllNotificationsRead}
-          clearNotifications={clearAllNotifications}
-        />
-        
-        {/* Toast notification */}
-        {toast && (
-          <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in-up">
-            {toast}
+    <div className="min-h-screen bg-gray-50 text-gray-800">
+      {/* Full Header - Similar to TechnicianDashboard */}
+      <header className="flex items-center justify-between px-6 py-4 bg-white shadow-sm sticky top-0 z-30">
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[#29cc6a] text-white font-bold">CD</div>
+          <div>
+            <div className="text-lg font-semibold">Contractor Dashboard</div>
+            <div className="text-xs text-gray-500">Welcome back — manage your workshop</div>
           </div>
-        )}
+        </div>
 
-        {/* MAIN GRID: left (content) & right (preview) */}
-        <div className="grid grid-cols-12 gap-6">
-          {/* LEFT: large content */}
-          <div className="col-span-8">
-            {renderMainContent()}
-          </div>
-
-          {/* RIGHT: preview / details */}
-          <div className="col-span-4">
-            <div className="sticky top-8 space-y-4">
-              <QuickActions 
-                onCreateClick={handleCreateClick}
-                onOrdersClick={handleOrdersClick}
-                onNotificationsClick={handleNotificationsClick}
+        <div className="flex-1 px-6">
+          <div className="max-w-2xl mx-auto">
+            <label className="relative block">
+              <span className="sr-only">Search work orders</span>
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+                </svg>
+              </span>
+              <input
+                className="placeholder:italic placeholder:text-slate-400 block bg-gray-100 w-full border border-transparent rounded-md py-2 pl-10 pr-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#29cc6a]"
+                placeholder="Search work orders, customer, VIN..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
               />
-              <WorkOrderPreview selectedWorkOrder={selectedWorkOrder} />
-              <RecentActivity />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <button
+            title="Create Work Order"
+            onClick={handleCreateClick}
+            className="inline-flex items-center gap-2 bg-[#29cc6a] hover:bg-green-600 text-white px-3 py-2 rounded-md shadow-sm text-sm"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+            </svg>
+            Create
+          </button>
+
+          <div className="relative">
+            <button
+              onClick={() => {
+                const panel = document.getElementById("notif-panel");
+                if (panel) panel.classList.toggle("hidden");
+              }}
+              className="p-2 rounded-md hover:bg-gray-100"
+              aria-label="Notifications"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </button>
+
+            <div
+              id="notif-panel"
+              className="hidden absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-40"
+            >
+              <div className="p-4 border-b flex items-center justify-between">
+                <div className="font-medium">Notifications</div>
+                <div className="text-sm flex items-center gap-2">
+                  <button onClick={markAllNotificationsRead} className="text-xs text-slate-500 hover:underline">Mark all</button>
+                  <button onClick={clearAllNotifications} className="text-xs text-red-500 hover:underline">Clear</button>
+                </div>
+              </div>
+              <div className="max-h-64 overflow-auto">
+                {notifications.length === 0 && <div className="p-4 text-sm text-gray-500">No notifications</div>}
+                {notifications.map((n) => (
+                  <div key={n.id} className={`p-3 border-b ${n.read ? "bg-white" : "bg-gray-50"}`}>
+                    <div className="text-sm">{n.text}</div>
+                    <div className="text-xs text-gray-400">{n.time}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-sm font-medium">{user.name}</div>
+              <div className="text-xs text-gray-400">{user.email}</div>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-[#29cc6a] font-semibold">
+              {user.name?.[0] || "C"}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <div className="flex flex-col lg:flex-row">
+        {/* Sidebar - Fixed at bottom on mobile/tablet, hidden on desktop */}
+        <div className="lg:hidden">
+          <ContractorSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+        </div>
+
+        {/* Main content with bottom padding for fixed sidebar on mobile */}
+        <div className="flex-1 p-6 pb-20 lg:pb-6">
+          {/* Toast notification */}
+          {toast && (
+            <div className="fixed bottom-20 right-4 lg:bottom-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in-up">
+              {toast}
+            </div>
+          )}
+
+          {/* MAIN GRID: left (content) & right (preview) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* LEFT: large content */}
+            <div className="lg:col-span-8">
+              {renderMainContent()}
+            </div>
+
+            {/* RIGHT: preview / details */}
+            <div className="lg:col-span-4">
+              <div className="sticky top-24 space-y-4">
+                <QuickActions 
+                  activeTab={activeTab}
+                  onCreateClick={handleCreateClick}
+                  onOrdersClick={handleOrdersClick}
+                  onNotificationsClick={handleNotificationsClick}
+                />
+                <WorkOrderPreview 
+                  selectedWorkOrder={selectedWorkOrder} 
+                  setWorkOrders={setWorkOrders}
+                  setSelectedWorkOrder={setSelectedWorkOrder}
+                />
+                <RecentActivity />
+              </div>
             </div>
           </div>
         </div>

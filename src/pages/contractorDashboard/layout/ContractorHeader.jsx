@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Search, Plus, Bell } from "lucide-react";
 
 export default function ContractorHeader({ 
@@ -11,6 +11,24 @@ export default function ContractorHeader({
   clearNotifications 
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   return (
     <header className="flex items-center justify-between px-6 py-4 bg-white shadow-sm sticky top-0 z-30 mb-6">
@@ -48,7 +66,7 @@ export default function ContractorHeader({
           Create
         </button>
 
-        <div className="relative">
+        <div className="relative" ref={notificationRef}>
           <button
             onClick={() => setShowNotifications(!showNotifications)}
             className="p-2 rounded-md hover:bg-gray-100 relative"
@@ -61,8 +79,8 @@ export default function ContractorHeader({
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-40">
-              <div className="p-4 border-b flex items-center justify-between">
+            <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg ring-1 ring-gray-200 z-40">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                 <div className="font-medium">Notifications</div>
                 <div className="text-sm flex items-center gap-2">
                   <button onClick={markAllRead} className="text-xs text-slate-500 hover:underline">Mark all</button>
@@ -72,7 +90,7 @@ export default function ContractorHeader({
               <div className="max-h-64 overflow-auto">
                 {notifications.length === 0 && <div className="p-4 text-sm text-gray-500">No notifications</div>}
                 {notifications.map(n => (
-                  <div key={n.id} className={`p-3 border-b last:border-b-0 ${n.read ? 'bg-gray-50' : 'bg-white'}`}>
+                  <div key={n.id} className={`p-3 border-b border-gray-200 last:border-b-0 ${n.read ? 'bg-gray-50' : 'bg-white'}`}>
                     <div className="text-sm">{n.text}</div>
                     <div className="text-xs text-gray-400 mt-1">{n.time}</div>
                   </div>
