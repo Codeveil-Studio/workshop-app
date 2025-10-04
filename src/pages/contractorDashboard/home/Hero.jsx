@@ -1,4 +1,5 @@
 import React from "react";
+// import heroImage from "../../../assets/images/Maskgroup.png";
 
 export default function Hero() {
   return (
@@ -8,7 +9,7 @@ export default function Hero() {
         <p className="text-sm text-gray-600 mt-1">Manage all your work orders, spare parts and activities from a single dashboard.</p>
       </div>
       <div className="w-40 h-24 bg-white rounded-lg flex items-center justify-center shadow">
-        <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=300&q=60" alt="hero" className="object-cover w-full h-full rounded-lg" />
+        <img src="https://images.unsplash.com/photo-1523731407965-2430cd12f5e4?w=600&q=60" alt="hero" className="object-cover w-full h-full rounded-lg" />
       </div>
     </div>
   );

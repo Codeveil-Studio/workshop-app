@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ContractorManagement from './Contractor';
+import DynamicUserManagement from './DynamicUserManagement';
 
 // Add custom ChevronRight icon component
 const ChevronRightIcon = ({ className }) => (
@@ -61,9 +61,17 @@ function SupplierIcon({ className = '' }) {
     )
 }
 
+function ConsultantIcon({ className = '' }) {
+    return (
+        <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 4V6C15 7.1 14.1 8 13 8H11C9.9 8 9 7.1 9 6V4L3 7V9H21ZM12 17.5L7.5 20L9 15L5 12H10L12 7L14 12H19L15 15L16.5 20L12 17.5Z" fill="currentColor"/>
+        </svg>
+    )
+}
+
 export default function ManagementSection({ userManagementState, setUserManagementState }) {
-  if (userManagementState.activeSection === 'contractor' || (userManagementState.activeSection === 'technician' || userManagementState.activeSection === 'supplier')) {
-    return <ContractorManagement 
+  if (userManagementState.activeSection === 'contractor' || userManagementState.activeSection === 'technician' || userManagementState.activeSection === 'supplier' || userManagementState.activeSection === 'consultant') {
+    return <DynamicUserManagement 
       userManagementState={userManagementState}
       setUserManagementState={setUserManagementState}
       onBack={() => setUserManagementState(prev => ({ ...prev, activeSection: 'main' }))} 
@@ -86,6 +94,11 @@ export default function ManagementSection({ userManagementState, setUserManageme
         icon={SupplierIcon}
         label="Supplier Management"
         onClick={() => setUserManagementState(prev => ({ ...prev, activeSection: 'supplier' }))}
+      />
+      <ManagementItem
+        icon={ConsultantIcon}
+        label="Consultant Management"
+        onClick={() => setUserManagementState(prev => ({ ...prev, activeSection: 'consultant' }))}
       />
     </div>
   );

@@ -52,21 +52,21 @@ function Sidebar({ activeMenu, setActiveMenu }) {
 
   return (
     <aside className="w-full lg:w-72 bg-[#12331f] border-r lg:h-screen lg:sticky lg:top-0">
-      <div className="flex justify-center items-center pt-4 lg:pt-6 px-4">
-        <img src={logoPng} alt="TRT Dashboard" className="w-1/3 lg:w-3/5 max-w-[200px]" />
+      <div className="flex justify-center items-center pt-3 sm:pt-4 lg:pt-6 px-2 sm:px-4">
+        <img src={logoPng} alt="TRT Dashboard" className="w-20 sm:w-24 md:w-28 lg:w-3/5 max-w-[200px] h-auto" />
       </div>
-      <nav className="mt-4 lg:mt-6">
-        <ul className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible">
+      <nav className="mt-3 sm:mt-4 lg:mt-6">
+        <ul className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible scrollbar-hide gap-1 sm:gap-2 lg:gap-3 px-2 sm:px-3 lg:px-4 py-2 sm:py-3 lg:py-4 flex   justify-between">
           {menuItems.map(item => (
             <li key={item.id} className="flex-shrink-0 lg:w-full">
               <button
                 onClick={() => setActiveMenu(item.label)}
-                className={`w-full text-left px-4 lg:px-6 py-2 lg:py-3 flex items-center gap-2 lg:gap-3 font-semibold text-sm lg:text-base whitespace-nowrap cursor-pointer ${activeMenu === item.label
+                className={`w-full text-left px-2 sm:px-4 lg:px-6 py-2 sm:py-2 lg:py-3 flex items-center gap-1 sm:gap-2 lg:gap-3 font-semibold text-xs sm:text-sm lg:text-base whitespace-nowrap cursor-pointer transition-all duration-200 ${activeMenu === item.label
                   ? 'bg-[#305940] text-[#29cc6a]'
                   : 'text-gray-300 hover:bg-[#305940] hover:text-[#29cc6a]'
                   }`}
               >
-                <item.Icon className="w-[18px] h-[18px] lg:w-[20px] lg:h-[20px] flex-shrink-0" />
+                <item.Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-[18px] md:h-[18px] lg:w-[20px] lg:h-[20px] flex-shrink-0" />
                 <span className="hidden sm:inline lg:inline">{item.label}</span>
               </button>
             </li>

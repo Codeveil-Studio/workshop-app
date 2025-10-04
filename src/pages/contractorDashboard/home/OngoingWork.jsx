@@ -6,7 +6,7 @@ export default function OngoingWork({ ongoing, onCreateClick }) {
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold">Ongoing Work</h3>
-        <button className="text-sm text-gray-500">See all</button>
+        <button className="text-sm text-gray-500 cursor-pointer">See all</button>
       </div>
 
       <div className="flex gap-4 overflow-x-auto pb-2">
@@ -31,7 +31,7 @@ export default function OngoingWork({ ongoing, onCreateClick }) {
         <div className="min-w-[140px] flex-none flex items-center justify-center">
           <button
             onClick={onCreateClick}
-            className="w-32 h-32 bg-white rounded-full shadow-lg flex flex-col items-center justify-center gap-2 text-green-600"
+            className="w-32 h-32 bg-white rounded-full shadow-lg flex flex-col items-center justify-center gap-2 text-green-600 cursor-pointer"
           >
             <Plus size={20} />
             <div className="text-xs">New</div>

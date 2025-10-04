@@ -26,16 +26,10 @@ import React, { useEffect, useRef, useState } from "react";
 
 export default function TechnicianDashboard() {
   // User state
-  const [userEmail, setUserEmail] = useState('you@example.com');
-  
-  // Get user email from localStorage on component mount
-  useEffect(() => {
-    const storedEmail = localStorage.getItem('userEmail');
-    if (storedEmail) {
-      setUserEmail(storedEmail);
-    }
-  }, []);
-  
+  const [user, setUser] = useState({ name: "Loading...", email: "" });
+  const [userLoading, setUserLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   // --- sample data inspired by your uploaded PDF frames (IDs, VINs, Mr John, Dave etc.)
   const initialOrders = [
     {
@@ -298,6 +292,62 @@ export default function TechnicianDashboard() {
     setNotifications([]);
   };
 
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          console.error('No user email found in localStorage');
+          setUser({ name: "Guest User", email: "" });
+          setUserLoading(false);
+          return;
+        }
+
+        const response = await fetch(`http://localhost:5000/api/auth/user/${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          setUser({
+            name: data.user.name,
+            email: data.user.email
+          });
+        } else {
+          console.error('Failed to fetch user data:', data.error);
+          setUser({ name: "Guest User", email: userEmail });
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setUser({ name: "Guest User", email: "" });
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Logout functionality
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+    
+    // Close modal
+    setShowLogoutModal(false);
+    
+    // Redirect to login selection
+    window.location.href = '/loginselection';
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
+  };
+
   // cleanup timers
   useEffect(() => {
     return () => {
@@ -385,7 +435,7 @@ export default function TechnicianDashboard() {
                 const panel = document.getElementById("notif-panel");
                 if (panel) panel.classList.toggle("hidden");
               }}
-              className="p-2 rounded-md hover:bg-gray-100"
+              className="p-2 rounded-md hover:bg-gray-100 cursor-pointer"
               aria-label="Notifications"
             >
               <IconBell />
@@ -398,8 +448,8 @@ export default function TechnicianDashboard() {
               <div className="p-4 border-b flex items-center justify-between">
                 <div className="font-medium">Notifications</div>
                 <div className="text-sm flex items-center gap-2">
-                  <button onClick={markAllRead} className="text-xs text-slate-500 hover:underline">Mark all</button>
-                  <button onClick={clearNotifications} className="text-xs text-red-500 hover:underline">Clear</button>
+                  <button onClick={markAllRead} className="text-xs text-slate-500 hover:underline cursor-pointer">Mark all</button>
+                  <button onClick={clearNotifications} className="text-xs text-red-500 hover:underline cursor-pointer">Clear</button>
                 </div>
               </div>
               <div className="max-h-64 overflow-auto">
@@ -416,10 +466,18 @@ export default function TechnicianDashboard() {
 
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-sm font-medium">Technician</div>
-              <div className="text-xs text-gray-400">{userEmail}</div>
+              {userLoading ? (
+                <div className="text-sm font-medium text-gray-400">Loading...</div>
+              ) : (
+                <>
+                  <div className="text-sm font-medium">{user.name}</div>
+                  <div className="text-xs text-gray-400">{user.email}</div>
+                </>
+              )}
             </div>
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold">T</div>
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-[#29cc6a] font-semibold cursor-pointer" onClick={handleLogout} title="Logout">
+              {user.name ? user.name.charAt(0).toUpperCase() : 'T'}
+            </div>
           </div>
         </div>
       </header>
@@ -429,17 +487,17 @@ export default function TechnicianDashboard() {
           {/* Sidebar */}
           <aside className="col-span-3 hidden lg:block">
             <nav className="bg-white rounded-md p-4 shadow-card space-y-2">
-              <button onClick={() => setFilterStatus("all")} className={`w-full text-left p-2 rounded ${filterStatus==="all" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>All Work</button>
-              <button onClick={() => setFilterStatus("new")} className={`w-full text-left p-2 rounded ${filterStatus==="new" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>New</button>
-              <button onClick={() => setFilterStatus("in_progress")} className={`w-full text-left p-2 rounded ${filterStatus==="in_progress" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>In Progress</button>
-              <button onClick={() => setFilterStatus("finished")} className={`w-full text-left p-2 rounded ${filterStatus==="finished" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>Finished</button>
+              <button onClick={() => setFilterStatus("all")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="all" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>All Work</button>
+              <button onClick={() => setFilterStatus("new")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="new" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>New</button>
+              <button onClick={() => setFilterStatus("in_progress")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="in_progress" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>In Progress</button>
+              <button onClick={() => setFilterStatus("finished")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="finished" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>Finished</button>
 
               <div className="border-t pt-3">
                 <div className="text-xs font-semibold text-gray-500">Quick actions</div>
-                <button onClick={() => { setIsCreateOpen(true); resetWizard(); }} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded">
+                <button onClick={() => { setIsCreateOpen(true); resetWizard(); }} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded cursor-pointer">
                   <IconPlus /> Create Work Order
                 </button>
-                <button onClick={() => window.print()} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded">
+                <button onClick={() => window.print()} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded cursor-pointer">
                   Print
                 </button>
               </div>
@@ -504,8 +562,8 @@ export default function TechnicianDashboard() {
               <div className="mt-4 space-y-3">
                 {filteredOrders.length === 0 && <div className="p-6 text-sm text-gray-500">No matching work orders.</div>}
                 {filteredOrders.map((o) => (
-                  <div key={o.id} className="flex items-start gap-4 p-3 border rounded-md">
-                    <div className="w-12 h-12 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-700 font-semibold">
+                  <div key={o.id} className="flex items-start gap-4 p-3 border border-gray-300 rounded-md">
+                    <div className="w-12 h-12 rounded-md bg-green-100 flex items-center justify-center text-[#29cc6a] font-semibold">
                       {o.customerName?.[0] || "U"}
                     </div>
                     <div className="flex-1">
@@ -525,15 +583,15 @@ export default function TechnicianDashboard() {
                       <div className="mt-3 flex items-center gap-3">
                         {o.status === "new" && (
                           <>
-                            <button onClick={() => acceptOrder(o.id)} className="text-sm bg-[var(--primary)] text-white px-3 py-1 rounded">Accept</button>
-                            <button onClick={() => declineOrder(o.id)} className="text-sm border border-gray-200 px-3 py-1 rounded text-red-600">Decline</button>
+                            <button onClick={() => acceptOrder(o.id)} className="text-sm bg-[var(--primary)] text-white px-3 py-1 rounded cursor-pointer">Accept</button>
+                            <button onClick={() => declineOrder(o.id)} className="text-sm border border-gray-200 px-3 py-1 rounded text-red-600 cursor-pointer">Decline</button>
                           </>
                         )}
 
                         {o.status === "in_progress" && <div className="text-sm text-gray-600">Working — keep updating progress</div>}
                         {o.status === "finished" && <div className="text-sm text-gray-600">Completed</div>}
 
-                        <button onClick={() => openDetails(o)} className="ml-auto text-sm text-[var(--primary)] hover:underline">View details</button>
+                        <button onClick={() => openDetails(o)} className="ml-auto text-sm text-[var(--primary)] hover:underline cursor-pointer">View details</button>
                       </div>
                     </div>
                   </div>
@@ -572,7 +630,7 @@ export default function TechnicianDashboard() {
                             <span className={`px-2 py-1 rounded-full text-xs ${statusMeta[o.status].color}`}>{statusMeta[o.status].label}</span>
                           </td>
                           <td className="py-3">
-                            <button onClick={() => openDetails(o)} className="text-sm text-[var(--primary)] hover:underline">View</button>
+                            <button onClick={() => openDetails(o)} className="text-sm text-[var(--primary)] hover:underline cursor-pointer">View</button>
                           </td>
                         </tr>
                       ))}
@@ -595,8 +653,8 @@ export default function TechnicianDashboard() {
                 <div className="text-sm text-gray-500">{selectedOrder.customerName} • {selectedOrder.vehicle} • {selectedOrder.vin}</div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => downloadInvoice(selectedOrder)} className="text-sm bg-green-600 text-white px-3 py-1 rounded">Download Invoice</button>
-                <button onClick={closeDetails} className="text-sm border px-3 py-1 rounded">Close</button>
+                <button onClick={() => downloadInvoice(selectedOrder)} className="text-sm bg-green-600 text-white px-3 py-1 rounded cursor-pointer">Download Invoice</button>
+                <button onClick={closeDetails} className="text-sm border px-3 py-1 rounded cursor-pointer">Close</button>
               </div>
             </div>
 
@@ -664,13 +722,13 @@ export default function TechnicianDashboard() {
                     setOrders((prev) => prev.map((o) => (o.id === selectedOrder.id ? { ...o, status: "finished" } : o)));
                     showToast("Marked as finished");
                   }}
-                  className="bg-[var(--success)] px-3 py-1 text-white rounded"
+                  className="bg-[var(--success)] px-3 py-1 text-white rounded cursor-pointer"
                 >
                   Mark Finished
                 </button>
               )}
-              <button onClick={() => downloadInvoice(selectedOrder)} className="border px-3 py-1 rounded">Generate Invoice</button>
-              <button onClick={closeDetails} className="text-sm ml-auto text-gray-600">Close</button>
+              <button onClick={() => downloadInvoice(selectedOrder)} className="border px-3 py-1 rounded cursor-pointer">Generate Invoice</button>
+              <button onClick={closeDetails} className="text-sm ml-auto text-gray-600 cursor-pointer">Close</button>
             </div>
           </div>
         </div>
@@ -713,7 +771,7 @@ export default function TechnicianDashboard() {
                   <div className="text-sm text-gray-600">Add work types</div>
                   <div className="flex flex-wrap gap-2">
                     {["Engine checkup","Air Conditioning","Oil change","ECU testing","Brake","Paint","Other"].map((t)=>(
-                      <button key={t} onClick={()=>addWorkType(t)} className={`px-3 py-1 rounded border ${newOrder.workTypes.includes(t) ? "bg-[var(--primary)] text-white" : "bg-white"}`}>{t}</button>
+                      <button key={t} onClick={()=>addWorkType(t)} className={`px-3 py-1 rounded border cursor-pointer ${newOrder.workTypes.includes(t) ? "bg-[var(--primary)] text-white" : "bg-white"}`}>{t}</button>
                     ))}
                   </div>
 
@@ -755,13 +813,53 @@ export default function TechnicianDashboard() {
 
             <div className="mt-6 flex items-center gap-2">
               <div className="flex-1">
-                {wizardStep > 1 && <button onClick={()=>setWizardStep(s=>s-1)} className="px-3 py-1 border rounded">Previous</button>}
+                {wizardStep > 1 && <button onClick={()=>setWizardStep(s=>s-1)} className="px-3 py-1 border rounded cursor-pointer">Previous</button>}
               </div>
 
               <div className="flex items-center gap-2">
-                {wizardStep < 4 && <button onClick={()=>setWizardStep(s=>s+1)} className="px-3 py-1 bg-[var(--primary)] text-white rounded">Next</button>}
-                {wizardStep === 4 && <button onClick={submitNewOrder} className="px-3 py-1 bg-[var(--primary)] text-white rounded">Submit</button>}
-                <button onClick={()=>{setIsCreateOpen(false); resetWizard();}} className="px-3 py-1 border rounded">Cancel</button>
+                {wizardStep < 4 && <button onClick={()=>setWizardStep(s=>s+1)} className="px-3 py-1 bg-[var(--primary)] text-white rounded cursor-pointer">Next</button>}
+                {wizardStep === 4 && <button onClick={submitNewOrder} className="px-3 py-1 bg-[var(--primary)] text-white rounded cursor-pointer">Submit</button>}
+                <button onClick={()=>{setIsCreateOpen(false); resetWizard();}} className="px-3 py-1 border rounded cursor-pointer">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="text-center">
+              {/* Icon */}
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
+              
+              {/* Message */}
+              <p className="text-sm text-gray-600 mb-6">
+                Are you sure you want to logout? You will need to sign in again to access your dashboard.
+              </p>
+              
+              {/* Buttons */}
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={cancelLogout}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Logout
+                </button>
               </div>
             </div>
           </div>
@@ -799,7 +897,7 @@ function AddItemInline({ onAdd }) {
       <input placeholder="Description" value={desc} onChange={(e)=>setDesc(e.target.value)} className="p-2 border rounded flex-1"/>
       <input placeholder="Qty" type="number" min="1" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-20 p-2 border rounded"/>
       <input placeholder="Price" type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-28 p-2 border rounded"/>
-      <button onClick={add} className="px-3 py-1 bg-[var(--primary)] text-white rounded">Add</button>
+      <button onClick={add} className="px-3 py-1 bg-[var(--primary)] text-white rounded cursor-pointer">Add</button>
     </div>
   );
 }

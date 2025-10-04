@@ -485,6 +485,16 @@ export async function login(req, res) {
       return res.status(404).json({ success: false, message: 'User not found for this role' });
     }
     
+    // Check if user is banned
+    if (user.isBan === 1) {
+      console.log(`❌ Login failed: user is banned ${roleLower} ${email}`);
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You are banned by the admin. Please contact support for further assistance.',
+        isBanned: true
+      });
+    }
+    
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
       console.log(`❌ Login failed: wrong password for role ${roleLower} ${email}`);

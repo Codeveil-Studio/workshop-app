@@ -75,7 +75,7 @@ export default function Signup() {
       }
       setOtpModalOpen(false);
       alert("Account created successfully");
-      window.location.href = data?.redirect || "/loginselection";
+      window.location.href = "/loginselection";
     } catch (err) {
       setOtpError(err.message);
     }

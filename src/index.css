@@ -48,3 +48,27 @@ body {
   overflow-y: auto !important;
   max-height: 200px !important;
 }
+
+/* Hide scrollbar utility class */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive utilities for better mobile experience */
+@media (max-width: 640px) {
+  .mobile-optimized {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .tablet-optimized {
+    padding: 0.75rem;
+  }
+}

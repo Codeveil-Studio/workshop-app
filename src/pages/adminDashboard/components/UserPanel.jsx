@@ -25,7 +25,9 @@ function UserPanel({ show, onClose }) {
           {users.map(u => (
             <div key={u.email} className="flex items-center justify-between p-3 rounded border">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full" />
+                <div className="w-10 h-10 bg-[#29cc6a] rounded-full flex items-center justify-center text-white font-semibold">
+                  {u.name.charAt(0).toUpperCase()}
+                </div>
                 <div>
                   <div className="font-semibold">{u.name}</div>
                   <div className="text-xs text-gray-500">{u.email}</div>

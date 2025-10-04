@@ -14,7 +14,7 @@ export default function SpareParts({ spareCatalog, partsCart, addPartToCart, cha
                 <div className="text-xs text-gray-400">${p.price.toFixed(2)}</div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => addPartToCart(p)} className="px-3 py-1 bg-green-50 text-green-600 rounded">
+                <button onClick={() => addPartToCart(p)} className="px-3 py-1 bg-green-50 text-green-600 rounded cursor-pointer">
                   Add
                 </button>
               </div>
@@ -34,11 +34,11 @@ export default function SpareParts({ spareCatalog, partsCart, addPartToCart, cha
                 <div className="text-xs text-gray-400">${c.price.toFixed(2)}</div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => changeCartQty(c.id, -1)} className="p-1 bg-gray-100 rounded">
+                <button onClick={() => changeCartQty(c.id, -1)} className="p-1 bg-gray-100 rounded cursor-pointer">
                   <Minus size={14} />
                 </button>
                 <div className="w-6 text-center">{c.qty}</div>
-                <button onClick={() => changeCartQty(c.id, 1)} className="p-1 bg-gray-100 rounded">
+                <button onClick={() => changeCartQty(c.id, 1)} className="p-1 bg-gray-100 rounded cursor-pointer">
                   <Plus size={14} />
                 </button>
               </div>

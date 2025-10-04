@@ -131,10 +131,10 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <KpiCard title="Sales" value={2453} />
-              <KpiCard title="Repairs" value={3429} />
-              <KpiCard title="Categories" value={29} />
-              <KpiCard title="Customers" value={488} />
+              <KpiCard title="Sales" value={0} />
+              <KpiCard title="Repairs" value={0} />
+              <KpiCard title="Categories" value={4} />
+              <KpiCard title="Customers" value={0} />
             </div>
 
 
@@ -255,7 +255,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col lg:flex-row">
         <Sidebar activeMenu={activeMenu} setActiveMenu={handleMenuClick} />
-        <div className="flex-1 lg:ml-0">
+        <div className="flex-1 lg:ml-0 w-full overflow-hidden">
           {(() => {
             let headerTitle = activeMenu
             let headerIconKey = null
@@ -335,8 +335,9 @@ export default function AdminDashboard() {
                 headerIconKey={headerIconKey}
               />
             )
-          })()}
-          <main className="p-3 sm:p-4 lg:p-6">
+          })()
+          }
+          <main className="p-2 sm:p-3 md:p-4 lg:p-6 max-w-full">
             {renderContent()}
           </main>
         </div>

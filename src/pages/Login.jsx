@@ -17,6 +17,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showBannedModal, setShowBannedModal] = useState(false);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -28,6 +29,13 @@ export default function Login() {
         body: JSON.stringify({ email, password, role })
       });
       const data = await res.json();
+      
+      // Check if user is banned
+      if (data.isBanned) {
+        setShowBannedModal(true);
+        return;
+      }
+      
       if (!res.ok) throw new Error(data?.message || 'Login failed');
       
       // Store user information in localStorage
@@ -116,12 +124,37 @@ export default function Login() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <Link to="/signup" className="text-green-600 font-medium hover:underline">
             Create account
           </Link>
         </p>
       </div>
+      
+      {/* Banned User Modal */}
+      {showBannedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/50">
+          <div className="bg-white w-[400px] max-w-[90vw] p-6 rounded-2xl shadow-xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Account Banned</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                You are banned by the admin. Please contact support for further assistance.
+              </p>
+              <button
+                onClick={() => setShowBannedModal(false)}
+                className="w-full py-2 px-4 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
