@@ -48,7 +48,7 @@ function OrdersTable({ orders, onEdit }) {
                 <td className="px-4 py-4 text-right">
                   <button
                     onClick={() => onEdit(order)}
-                    className="text-[#29cc6a] hover:text-[#1fa554]"
+                    className="text-[#29cc6a] hover:text-[#1fa554] cursor-pointer"
                   >
                     <EditIcon className="w-4 h-4" />
                   </button>
@@ -71,7 +71,7 @@ function OrdersTable({ orders, onEdit }) {
           >
             Previous
           </button>
-          <button className="px-3 py-1 border-gray-300 border rounded text-gray-600 hover:bg-gray-50">
+          <button className="px-3 py-1 border-gray-300 border rounded text-gray-600 hover:bg-gray-50 cursor-pointer">
             Next
           </button>
         </div>

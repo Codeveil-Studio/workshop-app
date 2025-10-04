@@ -73,7 +73,7 @@ function RepairForm({ onCancel, onSubmit }) {
                 <button
                   type="button"
                   onClick={() => setForm(prev => ({ ...prev, isStatusOpen: !prev.isStatusOpen }))}
-                  className="w-full bg-white border-gray-200 border rounded-md pl-3 pr-8 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#29cc6a] focus:border-[#29cc6a] text-left text-gray-700"
+                  className="w-full bg-white border-gray-200 border rounded-md pl-3 pr-8 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#29cc6a] focus:border-[#29cc6a] text-left text-gray-700 cursor-pointer"
                 >
                   {form.status}
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#29cc6a]">
@@ -122,13 +122,13 @@ function RepairForm({ onCancel, onSubmit }) {
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2 rounded-md bg-gray-200 text-gray-800 shadow hover:bg-gray-300"
+            className="px-5 py-2 rounded-md bg-gray-200 text-gray-800 shadow hover:bg-gray-300 cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-5 py-2 rounded-md border border-gray-200 text-gray-800 hover:bg-gray-100"
+            className="px-5 py-2 rounded-md border border-gray-200 text-gray-800 hover:bg-gray-100 cursor-pointer"
           >
             Update
           </button>

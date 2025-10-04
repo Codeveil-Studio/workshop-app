@@ -1,7 +1,7 @@
 import React from "react";
 import { Search, Plus } from "lucide-react";
 
-export default function ContractorHeader({ user, onCreateClick }) {
+export default function ContractorHeader({ user, userEmail, onCreateClick }) {
   return (
     <div className="flex items-center justify-between gap-6 mb-6">
       <div className="flex items-center gap-4 w-full max-w-3xl">
@@ -23,7 +23,7 @@ export default function ContractorHeader({ user, onCreateClick }) {
       <div className="flex items-center gap-3">
         <div className="text-right hidden md:block">
           <div className="text-sm font-medium">{user.name}</div>
-          <div className="text-xs text-gray-400">{user.email}</div>
+          <div className="text-xs text-gray-400">{userEmail}</div>
         </div>
       </div>
     </div>

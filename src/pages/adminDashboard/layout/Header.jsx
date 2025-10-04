@@ -133,31 +133,31 @@ function Header({ query, setQuery, onAddOrder, activeMenu, editingOrder, onBack,
                 <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
                     <div className="flex items-center gap-2 flex-1 sm:flex-none">
                         {activeMenu === 'Dashboard' && (
-                            <button onClick={() => window.location.reload()} className="bg-[#29cc6a] text-white p-2 rounded-lg hover:bg-[#24b85f] flex items-center justify-center">
+                            <button onClick={() => window.location.reload()} className="bg-[#29cc6a] text-white p-2 rounded-lg hover:bg-[#24b85f] flex items-center justify-center cursor-pointer">
                                 <RefreshIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         )}
                         {activeMenu === 'Orders' && (
                             <>
-                                <button onClick={onAddOrder} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
+                                <button onClick={onAddOrder} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center cursor-pointer">
                                     Add Order
                                 </button>
-                                <button className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
+                                <button className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center cursor-pointer">
                                     <span>Filters</span>
                                     <FilterIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                                 </button>
-                                <button onClick={() => window.location.reload()} className="bg-[#29cc6a] text-white p-2 rounded-lg hover:bg-[#24b85f] flex items-center justify-center">
+                                <button onClick={() => window.location.reload()} className="bg-[#29cc6a] text-white p-2 rounded-lg hover:bg-[#24b85f] flex items-center justify-center cursor-pointer">
                                     <RefreshIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                                 </button>
                             </>
                         )}
                         {(activeMenu === 'User Management' || activeMenu === 'User Roles') && (
-                            <button onClick={onAddOrder} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
+                            <button onClick={onAddOrder} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center cursor-pointer">
                                 Add User
                             </button>
                         )}
                         {activeMenu === 'Settings' && (
-                            <button onClick={onBack} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center">
+                            <button onClick={onBack} className="bg-[#29cc6a] text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center cursor-pointer">
                                 Back
                             </button>
                         )}

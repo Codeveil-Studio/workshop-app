@@ -29,12 +29,21 @@ export default function Login() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'Login failed');
+      
+      // Store user information in localStorage
+      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userRole', role);
+      
       if (role === 'contractor') {
         navigate('/contractordashboard');
         return;
       }
       if (role === 'admin') {
         navigate('/adminDashboard');
+        return;
+      }
+      if (role === 'technician') {
+        navigate('/techniciandashboard');
         return;
       }
       alert('Login successful');
@@ -100,7 +109,7 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700"
+            className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 cursor-pointer"
           >
             Sign In
           </button>

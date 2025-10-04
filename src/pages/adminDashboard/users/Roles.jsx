@@ -91,7 +91,7 @@ export default function Roles({ userRolesState, setUserRolesState }) {
               setFieldOpen((v) => !v);
               setSortOpen(false);
             }}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md bg-white text-sm text-gray-700 hover:shadow-sm"
+            className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md bg-white text-sm text-gray-700 hover:shadow-sm cursor-pointer"
           >
             <span>Created at</span>
             <IconChevronDown className="w-4 h-4 text-blue-500" />
@@ -99,13 +99,13 @@ export default function Roles({ userRolesState, setUserRolesState }) {
           {fieldOpen && (
             <div className="absolute right-0 mt-2 w-44 bg-white border rounded-md shadow-lg z-20">
               <button
-                className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50"
+                className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50 cursor-pointer"
                 onClick={() => setFieldOpen(false)}
               >
                 Created at
               </button>
               <button
-                className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50"
+                className="w-full px-3 py-2 text-sm text-left hover:bg-gray-50 cursor-pointer"
                 onClick={() => setFieldOpen(false)}
               >
                 Name
@@ -121,7 +121,7 @@ export default function Roles({ userRolesState, setUserRolesState }) {
               setSortOpen((v) => !v);
               setFieldOpen(false);
             }}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md bg-white text-sm font-medium text-gray-700 hover:shadow-sm"
+            className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md bg-white text-sm font-medium text-gray-700 hover:shadow-sm cursor-pointer"
           >
             <IconSort className="w-4 h-4 text-gray-600" />
             <span>Sort</span>
@@ -130,13 +130,13 @@ export default function Roles({ userRolesState, setUserRolesState }) {
             <div className="absolute right-0 mt-2 w-52 bg-white border rounded-md shadow-lg z-20 p-2">
               <div className="text-xs text-gray-500 px-2 pb-2">Order</div>
               <button
-                className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50"
+                className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50 cursor-pointer"
                 onClick={() => setSortOpen(false)}
               >
                 Newest first
               </button>
               <button
-                className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50"
+                className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-gray-50 cursor-pointer"
                 onClick={() => setSortOpen(false)}
               >
                 Oldest first
@@ -154,7 +154,7 @@ export default function Roles({ userRolesState, setUserRolesState }) {
           pageData.map((role) => (
             <button
               key={role.id}
-              className="w-full flex items-center px-4 py-4 hover:bg-gray-50"
+              className="w-full flex items-center px-4 py-4 hover:bg-gray-50 cursor-pointer"
               onClick={() => setUserRolesState({ editingRole: role })}
             >
               <div className="flex-1 grid grid-cols-2">
@@ -192,7 +192,7 @@ export default function Roles({ userRolesState, setUserRolesState }) {
               className={`px-3 py-2 rounded-md border text-sm ${
                 page <= 1
                   ? "text-gray-300 border-gray-100 cursor-not-allowed bg-white"
-                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm"
+                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm cursor-pointer"
               }`}
             >
               Previous
@@ -206,7 +206,7 @@ export default function Roles({ userRolesState, setUserRolesState }) {
               className={`px-3 py-2 rounded-md border text-sm ${
                 page >= totalPages
                   ? "text-gray-300 border-gray-100 cursor-not-allowed bg-white"
-                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm"
+                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm cursor-pointer"
               }`}
             >
               Next

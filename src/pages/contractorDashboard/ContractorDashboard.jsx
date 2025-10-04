@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Layout components
@@ -33,6 +33,16 @@ import Orders from "./orders/Orders";
  * - Create: Multi-step wizard with Work Types, Spare Parts, Activity details and Quote
  */
 export default function ContractorDashboard({ user = { name: "John Doe", email: "john@example.com" } }) {
+  const [userEmail, setUserEmail] = useState(user.email);
+  
+  // Get user email from localStorage on component mount
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('userEmail');
+    if (storedEmail) {
+      setUserEmail(storedEmail);
+    }
+  }, []);
+  
   const [activeTab, setActiveTab] = useState("home"); // home | create | notifications | orders
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
 
@@ -308,7 +318,7 @@ export default function ContractorDashboard({ user = { name: "John Doe", email: 
       {/* RIGHT: main content */}
       <div className="flex-1 p-8">
         {/* TOP row (search + small actions) */}
-        <ContractorHeader user={user} onCreateClick={handleCreateClick} />
+        <ContractorHeader user={user} userEmail={userEmail} onCreateClick={handleCreateClick} />
 
         {/* MAIN GRID: left (content) & right (preview) */}
         <div className="grid grid-cols-12 gap-6">

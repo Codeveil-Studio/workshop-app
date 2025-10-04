@@ -1,0 +1,805 @@
+// src/components/TechnicianDashboard.jsx
+import React, { useEffect, useRef, useState } from "react";
+
+/**
+ * TechnicianDashboard.jsx
+ *
+ * Features:
+ * - Desktop-first responsive layout (sidebar + main content)
+ * - Search + filter work orders
+ * - Work Order list (Accept / Decline / View Details)
+ * - Work Order Details modal with Edit + Generate Invoice
+ * - Create Work Order multi-step wizard (modal)
+ * - Notifications panel & simple toast/snackbar
+ * - Simple "Download Invoice" as an HTML file
+ *
+ * Notes:
+ * - Tailwind CSS must be available in the project.
+ * - Colors follow the Design.json palette (primary, success, accent, etc.)
+ * - This implementation is purposely dependency-free (no external icon libs).
+ *
+ * Usage:
+ * import TechnicianDashboard from './components/TechnicianDashboard'
+ * <TechnicianDashboard />
+ *
+ */
+
+export default function TechnicianDashboard() {
+  // User state
+  const [userEmail, setUserEmail] = useState('you@example.com');
+  
+  // Get user email from localStorage on component mount
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('userEmail');
+    if (storedEmail) {
+      setUserEmail(storedEmail);
+    }
+  }, []);
+  
+  // --- sample data inspired by your uploaded PDF frames (IDs, VINs, Mr John, Dave etc.)
+  const initialOrders = [
+    {
+      id: "W01",
+      title: "Car Engine Repair",
+      slot: "8:00 AM - 5:00 PM",
+      assignedBy: "Mr. John",
+      customerName: "Dave",
+      vehicle: "Maruti",
+      vin: "#8393038",
+      phone: "9112345678",
+      modelYear: 2017,
+      repairType: "Break",
+      status: "new", // new | in_progress | waiting | finished | declined
+      date: "2023-07-03",
+      items: [
+        { desc: "Labor", qty: 1, price: 80 },
+        { desc: "Hood", qty: 1, price: 120 },
+      ],
+      notes: "Engine noise, check compression.",
+    },
+    {
+      id: "W02",
+      title: "Oil Change",
+      slot: "9:00 AM - 11:00 AM",
+      assignedBy: "Mr. Jacob",
+      customerName: "Sarah",
+      vehicle: "Toyota Corolla",
+      vin: "#1234567",
+      phone: "9123456780",
+      modelYear: 2018,
+      repairType: "Oil change",
+      status: "in_progress",
+      date: "2023-07-02",
+      items: [{ desc: "Oil", qty: 1, price: 36 }, { desc: "Labor", qty: 1, price: 70 }],
+      notes: "Use synthetic oil.",
+    },
+    {
+      id: "W03",
+      title: "Brake Replacement",
+      slot: "10:00 AM - 2:00 PM",
+      assignedBy: "Mr. John",
+      customerName: "Mike",
+      vehicle: "Honda Civic",
+      vin: "#8393099",
+      phone: "9198765432",
+      modelYear: 2016,
+      repairType: "Brake",
+      status: "finished",
+      date: "2023-07-01",
+      items: [{ desc: "Brake Pads", qty: 2, price: 106 }, { desc: "Labor", qty: 1, price: 120 }],
+      notes: "Customer requested OEM pads.",
+    },
+  ];
+
+  const initialNotifications = [
+    { id: 1, text: "New car repair work posted by Mr John.", time: "11:10 pm", read: false },
+    { id: 2, text: "New car repair work posted by Mr Jacob.", time: "11:10 pm", read: false },
+    { id: 3, text: "Emergency Work Alert by Mr John.", time: "11:10 pm", read: false },
+  ];
+
+  // --- state
+  const [orders, setOrders] = useState(initialOrders);
+  const [query, setQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [notifications, setNotifications] = useState(initialNotifications);
+  const [toast, setToast] = useState(null);
+  const toastTimer = useRef(null);
+
+  // create-work-order form state
+  const [newOrder, setNewOrder] = useState({
+    customerName: "",
+    phone: "",
+    vin: "",
+    odometer: "",
+    make: "",
+    model: "",
+    year: "",
+    trim: "",
+    workTypes: [], // list of strings
+    items: [], // {desc, qty, price}
+    notes: "",
+  });
+
+  // --- helpers
+  const statusMeta = {
+    new: { label: "New", color: "bg-blue-100 text-blue-800", dot: "#29cc6a" },
+    in_progress: { label: "In Progress", color: "bg-orange-100 text-orange-800", dot: "#FF9500" },
+    waiting: { label: "Waiting", color: "bg-yellow-100 text-yellow-800", dot: "#FFCC00" },
+    finished: { label: "Finished", color: "bg-green-100 text-green-800", dot: "#34C759" },
+    declined: { label: "Declined", color: "bg-red-100 text-red-800", dot: "#FF3B30" },
+  };
+
+  const showToast = (msg, ms = 3000) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = setTimeout(() => setToast(null), ms);
+  };
+
+  const acceptOrder = (id) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, status: "in_progress", acceptedAt: new Date().toISOString() } : o))
+    );
+    setNotifications((n) => [{ id: Date.now(), text: `You accepted ${id}`, time: "now", read: false }, ...n]);
+    showToast("Work order accepted");
+  };
+
+  const declineOrder = (id) => {
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: "declined" } : o)));
+    setNotifications((n) => [{ id: Date.now(), text: `You declined ${id}`, time: "now", read: false }, ...n]);
+    showToast("Work order declined");
+  };
+
+  const openDetails = (order) => {
+    setSelectedOrder(order);
+    setIsDetailsOpen(true);
+  };
+
+  const closeDetails = () => {
+    setSelectedOrder(null);
+    setIsDetailsOpen(false);
+  };
+
+  const filteredOrders = orders.filter((o) => {
+    const matchesQuery =
+      !query ||
+      o.title.toLowerCase().includes(query.toLowerCase()) ||
+      o.customerName.toLowerCase().includes(query.toLowerCase()) ||
+      o.vin.toLowerCase().includes(query.toLowerCase());
+    const matchesStatus = filterStatus === "all" ? true : o.status === filterStatus;
+    return matchesQuery && matchesStatus;
+  });
+
+  const counts = {
+    new: orders.filter((o) => o.status === "new").length,
+    in_progress: orders.filter((o) => o.status === "in_progress").length,
+    finished: orders.filter((o) => o.status === "finished").length,
+  };
+
+  // --- Create Work Order Wizard handlers
+  const resetWizard = () => {
+    setWizardStep(1);
+    setNewOrder({
+      customerName: "",
+      phone: "",
+      vin: "",
+      odometer: "",
+      make: "",
+      model: "",
+      year: "",
+      trim: "",
+      workTypes: [],
+      items: [],
+      notes: "",
+    });
+  };
+
+  const addWorkType = (type) => {
+    setNewOrder((s) => ({ ...s, workTypes: s.workTypes.includes(type) ? s.workTypes : [...s.workTypes, type] }));
+  };
+
+  const addItemToNewOrder = (item) => {
+    setNewOrder((s) => ({ ...s, items: [...s.items, item] }));
+  };
+
+  const submitNewOrder = () => {
+    const id = `W${String(Date.now()).slice(-4)}`;
+    const created = {
+      id,
+      title: newOrder.workTypes.join(", ") || "General Service",
+      slot: "To be scheduled",
+      assignedBy: "Unassigned",
+      customerName: newOrder.customerName || "Unknown",
+      vehicle: `${newOrder.make} ${newOrder.model}`.trim() || "Unknown",
+      vin: newOrder.vin || "",
+      phone: newOrder.phone || "",
+      modelYear: newOrder.year || "",
+      repairType: newOrder.workTypes[0] || "General",
+      status: "new",
+      date: new Date().toISOString().slice(0, 10),
+      items: newOrder.items.length ? newOrder.items : [{ desc: "Labor", qty: 1, price: 0 }],
+      notes: newOrder.notes,
+    };
+    setOrders((o) => [created, ...o]);
+    setIsCreateOpen(false);
+    resetWizard();
+    setNotifications((n) => [{ id: Date.now(), text: `New work order created ${id}`, time: "now", read: false }, ...n]);
+    showToast("Work order created");
+  };
+
+  // --- edit order inline in details modal
+  const saveOrderEdits = (changes) => {
+    setOrders((prev) => prev.map((o) => (o.id === selectedOrder.id ? { ...o, ...changes } : o)));
+    setSelectedOrder((s) => ({ ...s, ...changes }));
+    showToast("Work order updated");
+  };
+
+  // --- invoice download
+  const downloadInvoice = (order) => {
+    // build basic HTML invoice
+    const total = (order.items || []).reduce((acc, it) => acc + (Number(it.price) || 0) * (Number(it.qty) || 1), 0);
+    const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Invoice - ${order.id}</title>
+  <style>
+    body { font-family: Inter, Roboto, Arial, sans-serif; padding:20px; color:#111 }
+    h1 { color:#29cc6a }
+    table { width:100%; border-collapse: collapse; margin-top:20px }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid #ddd }
+    .total { font-weight:700; font-size:1.1rem; }
+  </style>
+</head>
+<body>
+  <h1>Invoice - ${order.id}</h1>
+  <p><strong>Customer:</strong> ${order.customerName} • ${order.phone}</p>
+  <p><strong>Vehicle:</strong> ${order.vehicle} • VIN: ${order.vin}</p>
+  <p><strong>Date:</strong> ${order.date}</p>
+  <table>
+    <thead><tr><th>Description</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead>
+    <tbody>
+      ${(order.items || [])
+        .map(
+          (it) =>
+            `<tr><td>${it.desc}</td><td>${it.qty}</td><td>$${Number(it.price).toFixed(2)}</td><td>$${(
+              (Number(it.price) || 0) *
+              (Number(it.qty) || 1)
+            ).toFixed(2)}</td></tr>`
+        )
+        .join("")}
+    </tbody>
+  </table>
+  <p class="total">Total: $${Number(total).toFixed(2)}</p>
+  <p>Generated by Technician Dashboard</p>
+</body>
+</html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `invoice_${order.id}.html`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast("Invoice downloaded");
+  };
+
+  // --- notifications helpers
+  const markAllRead = () => {
+    setNotifications((n) => n.map((x) => ({ ...x, read: true })));
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
+  // cleanup timers
+  useEffect(() => {
+    return () => {
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
+  }, []);
+
+  // --- tiny inline icon svgs to avoid external libs
+  const IconBell = ({ className = "w-5 h-5" }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+    </svg>
+  );
+
+  const IconSearch = ({ className = "w-4 h-4" }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+    </svg>
+  );
+
+  const IconPlus = ({ className = "w-5 h-5" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+    </svg>
+  );
+
+  // --- small UI pieces
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900 antialiased" style={{ fontFamily: "Inter, Roboto, sans-serif" }}>
+      {/* CSS variables for brand colors (follow Design.json) */}
+      <style>{`
+        :root {
+          --primary: #29cc6a;
+          --success: #34C759;
+          --accent: #FF9500;
+          --warning: #FFCC00;
+          --error: #FF3B30;
+        }
+      `}</style>
+
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-6 py-4 bg-white shadow-sm sticky top-0 z-30">
+        <div className="flex items-center space-x-4">
+          <div className="w-10 h-10 rounded-md flex items-center justify-center bg-[var(--primary)] text-white font-bold">TD</div>
+          <div>
+            <div className="text-lg font-semibold">Technician Dashboard</div>
+            <div className="text-xs text-gray-500">Welcome back — manage your work orders</div>
+          </div>
+        </div>
+
+        <div className="flex-1 px-6">
+          <div className="max-w-2xl mx-auto">
+            <label className="relative block">
+              <span className="sr-only">Search work orders</span>
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                <IconSearch />
+              </span>
+              <input
+                className="placeholder:italic placeholder:text-slate-400 block bg-gray-100 w-full border border-transparent rounded-md py-2 pl-10 pr-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                placeholder="Search work orders, customer, VIN..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          <button
+            title="Create Work Order"
+            onClick={() => {
+              setIsCreateOpen(true);
+              resetWizard();
+            }}
+            className="inline-flex items-center gap-2 bg-[var(--primary)] hover:bg-blue-600 text-white px-3 py-2 rounded-md shadow-sm text-sm cursor-pointer"
+          >
+            <IconPlus />
+            Create
+          </button>
+
+          <div className="relative">
+            <button
+              onClick={() => {
+                // open notifications panel toggled by a small flag
+                const panel = document.getElementById("notif-panel");
+                if (panel) panel.classList.toggle("hidden");
+              }}
+              className="p-2 rounded-md hover:bg-gray-100"
+              aria-label="Notifications"
+            >
+              <IconBell />
+            </button>
+
+            <div
+              id="notif-panel"
+              className="hidden absolute right-0 mt-2 w-80 bg-white rounded-md shadow-card ring-1 ring-black ring-opacity-5 z-40"
+            >
+              <div className="p-4 border-b flex items-center justify-between">
+                <div className="font-medium">Notifications</div>
+                <div className="text-sm flex items-center gap-2">
+                  <button onClick={markAllRead} className="text-xs text-slate-500 hover:underline">Mark all</button>
+                  <button onClick={clearNotifications} className="text-xs text-red-500 hover:underline">Clear</button>
+                </div>
+              </div>
+              <div className="max-h-64 overflow-auto">
+                {notifications.length === 0 && <div className="p-4 text-sm text-gray-500">No notifications</div>}
+                {notifications.map((n) => (
+                  <div key={n.id} className={`p-3 border-b ${n.read ? "bg-white" : "bg-gray-50"}`}>
+                    <div className="text-sm">{n.text}</div>
+                    <div className="text-xs text-gray-400">{n.time}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-sm font-medium">Technician</div>
+              <div className="text-xs text-gray-400">{userEmail}</div>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold">T</div>
+          </div>
+        </div>
+      </header>
+
+      <main className="px-6 py-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-12 gap-6">
+          {/* Sidebar */}
+          <aside className="col-span-3 hidden lg:block">
+            <nav className="bg-white rounded-md p-4 shadow-card space-y-2">
+              <button onClick={() => setFilterStatus("all")} className={`w-full text-left p-2 rounded ${filterStatus==="all" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>All Work</button>
+              <button onClick={() => setFilterStatus("new")} className={`w-full text-left p-2 rounded ${filterStatus==="new" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>New</button>
+              <button onClick={() => setFilterStatus("in_progress")} className={`w-full text-left p-2 rounded ${filterStatus==="in_progress" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>In Progress</button>
+              <button onClick={() => setFilterStatus("finished")} className={`w-full text-left p-2 rounded ${filterStatus==="finished" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>Finished</button>
+
+              <div className="border-t pt-3">
+                <div className="text-xs font-semibold text-gray-500">Quick actions</div>
+                <button onClick={() => { setIsCreateOpen(true); resetWizard(); }} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded">
+                  <IconPlus /> Create Work Order
+                </button>
+                <button onClick={() => window.print()} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded">
+                  Print
+                </button>
+              </div>
+            </nav>
+
+            <div className="mt-4 bg-white p-4 rounded-md shadow-card">
+              <div className="text-xs font-semibold text-gray-500">Work Summary</div>
+              <div className="mt-3 grid grid-cols-1 gap-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">New</div>
+                    <div className="text-xs text-gray-400">Unassigned / awaiting</div>
+                  </div>
+                  <div className="text-xl font-bold">{counts.new}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">In progress</div>
+                    <div className="text-xs text-gray-400">Active jobs</div>
+                  </div>
+                  <div className="text-xl font-bold">{counts.in_progress}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-medium">Completed</div>
+                    <div className="text-xs text-gray-400">Work history</div>
+                  </div>
+                  <div className="text-xl font-bold">{counts.finished}</div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main content */}
+          <section className="col-span-12 lg:col-span-9 space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              {/* Cards */}
+              <div className="col-span-1 bg-white p-4 rounded-md shadow-card">
+                <div className="text-xs text-gray-500">New Work Orders</div>
+                <div className="mt-2 text-2xl font-bold">{counts.new}</div>
+                <div className="text-xs text-gray-400 mt-1">Check and accept new work</div>
+              </div>
+              <div className="col-span-1 bg-white p-4 rounded-md shadow-card">
+                <div className="text-xs text-gray-500">Active</div>
+                <div className="mt-2 text-2xl font-bold">{counts.in_progress}</div>
+                <div className="text-xs text-gray-400 mt-1">Jobs you're working on</div>
+              </div>
+              <div className="col-span-1 bg-white p-4 rounded-md shadow-card">
+                <div className="text-xs text-gray-500">Completed</div>
+                <div className="mt-2 text-2xl font-bold">{counts.finished}</div>
+                <div className="text-xs text-gray-400 mt-1">Work history</div>
+              </div>
+            </div>
+
+            {/* Work Orders List */}
+            <div className="bg-white p-4 rounded-md shadow-card">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Latest Work Orders</h2>
+                <div className="text-sm text-gray-500">{filteredOrders.length} items</div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {filteredOrders.length === 0 && <div className="p-6 text-sm text-gray-500">No matching work orders.</div>}
+                {filteredOrders.map((o) => (
+                  <div key={o.id} className="flex items-start gap-4 p-3 border rounded-md">
+                    <div className="w-12 h-12 rounded-md bg-indigo-50 flex items-center justify-center text-indigo-700 font-semibold">
+                      {o.customerName?.[0] || "U"}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold">{o.title} <span className="text-xs text-gray-400">• {o.id}</span></div>
+                          <div className="text-xs text-gray-500">{o.customerName} • {o.vehicle} • {o.vin}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-400">{o.slot}</div>
+                          <div className="text-sm mt-1 flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${statusMeta[o.status].color}`}>{statusMeta[o.status].label}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-3">
+                        {o.status === "new" && (
+                          <>
+                            <button onClick={() => acceptOrder(o.id)} className="text-sm bg-[var(--primary)] text-white px-3 py-1 rounded">Accept</button>
+                            <button onClick={() => declineOrder(o.id)} className="text-sm border border-gray-200 px-3 py-1 rounded text-red-600">Decline</button>
+                          </>
+                        )}
+
+                        {o.status === "in_progress" && <div className="text-sm text-gray-600">Working — keep updating progress</div>}
+                        {o.status === "finished" && <div className="text-sm text-gray-600">Completed</div>}
+
+                        <button onClick={() => openDetails(o)} className="ml-auto text-sm text-[var(--primary)] hover:underline">View details</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Work History */}
+            <div className="bg-white p-4 rounded-md shadow-card">
+              <div className="flex items-center justify-between">
+                <h3 className="text-md font-semibold">Work History</h3>
+                <div className="text-sm text-gray-500">See all completed work</div>
+              </div>
+              <div className="mt-3">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-gray-500">
+                    <tr>
+                      <th className="text-left py-2">#</th>
+                      <th className="text-left py-2">Customer</th>
+                      <th className="text-left py-2">Vehicle</th>
+                      <th className="text-left py-2">Date</th>
+                      <th className="text-left py-2">Status</th>
+                      <th className="text-left py-2">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {orders
+                      .filter((o) => o.status === "finished")
+                      .map((o) => (
+                        <tr key={o.id} className="border-t">
+                          <td className="py-3">{o.id}</td>
+                          <td className="py-3">{o.customerName}</td>
+                          <td className="py-3">{o.vehicle}</td>
+                          <td className="py-3">{o.date}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs ${statusMeta[o.status].color}`}>{statusMeta[o.status].label}</span>
+                          </td>
+                          <td className="py-3">
+                            <button onClick={() => openDetails(o)} className="text-sm text-[var(--primary)] hover:underline">View</button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* Details Modal */}
+      {isDetailsOpen && selectedOrder && (
+        <div className="fixed inset-0 z-50 grid place-items-center">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={closeDetails}></div>
+          <div className="relative bg-white w-11/12 md:w-3/4 lg:w-2/3 rounded-md shadow-modal p-6 z-50">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-semibold">{selectedOrder.title} • {selectedOrder.id}</h3>
+                <div className="text-sm text-gray-500">{selectedOrder.customerName} • {selectedOrder.vehicle} • {selectedOrder.vin}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => downloadInvoice(selectedOrder)} className="text-sm bg-green-600 text-white px-3 py-1 rounded">Download Invoice</button>
+                <button onClick={closeDetails} className="text-sm border px-3 py-1 rounded">Close</button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <div className="text-xs text-gray-500">Assigned by</div>
+                <div className="font-medium">{selectedOrder.assignedBy}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Phone</div>
+                <div>{selectedOrder.phone}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Model Year</div>
+                <div>{selectedOrder.modelYear}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Repair Type</div>
+                <div>{selectedOrder.repairType}</div>
+              </div>
+
+              <div>
+                <div className="text-xs text-gray-500">Status</div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs ${statusMeta[selectedOrder.status].color}`}>{statusMeta[selectedOrder.status].label}</span>
+                </div>
+
+                <div className="mt-3 text-xs text-gray-500">Date</div>
+                <div>{selectedOrder.date}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Notes</div>
+                <div className="text-sm">{selectedOrder.notes}</div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="text-sm font-semibold">Parts & Labor</div>
+              <div className="mt-2">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-gray-400">
+                    <tr><th className="text-left">Desc</th><th>Qty</th><th>Price</th><th>Amount</th></tr>
+                  </thead>
+                  <tbody>
+                    {(selectedOrder.items || []).map((it, idx) => (
+                      <tr key={idx} className="border-t">
+                        <td className="py-2">{it.desc}</td>
+                        <td className="py-2 text-center">{it.qty}</td>
+                        <td className="py-2 text-right">${Number(it.price).toFixed(2)}</td>
+                        <td className="py-2 text-right">${((Number(it.price) || 0) * (Number(it.qty) || 1)).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                    <tr className="border-t">
+                      <td className="py-2 font-semibold">Total</td>
+                      <td></td>
+                      <td></td>
+                      <td className="py-2 text-right font-semibold">${((selectedOrder.items || []).reduce((a,c)=>a + (Number(c.price)||0)*(Number(c.qty)||1),0)).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              {selectedOrder.status !== "finished" && (
+                <button
+                  onClick={() => {
+                    saveOrderEdits({ status: "finished" });
+                    setOrders((prev) => prev.map((o) => (o.id === selectedOrder.id ? { ...o, status: "finished" } : o)));
+                    showToast("Marked as finished");
+                  }}
+                  className="bg-[var(--success)] px-3 py-1 text-white rounded"
+                >
+                  Mark Finished
+                </button>
+              )}
+              <button onClick={() => downloadInvoice(selectedOrder)} className="border px-3 py-1 rounded">Generate Invoice</button>
+              <button onClick={closeDetails} className="text-sm ml-auto text-gray-600">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Work Order Wizard Modal */}
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center">
+          <div className="absolute inset-0 bg-black opacity-30" onClick={() => setIsCreateOpen(false)}></div>
+          <div className="relative bg-white w-11/12 md:w-3/4 rounded-md shadow-modal p-6 z-50 max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Create Work Order</h3>
+              <div className="text-sm text-gray-500">Step {wizardStep} / 4</div>
+            </div>
+
+            {/* Steps */}
+            <div className="mt-4">
+              {wizardStep === 1 && (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600">Customer information</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input placeholder="Customer name" value={newOrder.customerName} onChange={(e)=>setNewOrder(s=>({...s, customerName:e.target.value}))} className="p-2 border rounded"/>
+                    <input placeholder="Phone" value={newOrder.phone} onChange={(e)=>setNewOrder(s=>({...s, phone:e.target.value}))} className="p-2 border rounded"/>
+                    <input placeholder="VIN" value={newOrder.vin} onChange={(e)=>setNewOrder(s=>({...s, vin:e.target.value}))} className="p-2 border rounded"/>
+                    <input placeholder="Odometer" value={newOrder.odometer} onChange={(e)=>setNewOrder(s=>({...s, odometer:e.target.value}))} className="p-2 border rounded"/>
+                  </div>
+
+                  <div className="text-sm text-gray-600 mt-3">Vehicle info</div>
+                  <div className="grid grid-cols-3 gap-3 mt-2">
+                    <input placeholder="Make" value={newOrder.make} onChange={(e)=>setNewOrder(s=>({...s, make:e.target.value}))} className="p-2 border rounded"/>
+                    <input placeholder="Model" value={newOrder.model} onChange={(e)=>setNewOrder(s=>({...s, model:e.target.value}))} className="p-2 border rounded"/>
+                    <input placeholder="Year" value={newOrder.year} onChange={(e)=>setNewOrder(s=>({...s, year:e.target.value}))} className="p-2 border rounded"/>
+                    <input placeholder="Trim" value={newOrder.trim} onChange={(e)=>setNewOrder(s=>({...s, trim:e.target.value}))} className="p-2 border rounded"/>
+                  </div>
+                </div>
+              )}
+
+              {wizardStep === 2 && (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600">Add work types</div>
+                  <div className="flex flex-wrap gap-2">
+                    {["Engine checkup","Air Conditioning","Oil change","ECU testing","Brake","Paint","Other"].map((t)=>(
+                      <button key={t} onClick={()=>addWorkType(t)} className={`px-3 py-1 rounded border ${newOrder.workTypes.includes(t) ? "bg-[var(--primary)] text-white" : "bg-white"}`}>{t}</button>
+                    ))}
+                  </div>
+
+                  <div className="text-sm text-gray-600 mt-3">Add item (part / labor)</div>
+                  <AddItemInline onAdd={(it)=>addItemToNewOrder(it)} />
+                  <div className="mt-2">
+                    {(newOrder.items || []).map((it, idx)=>(
+                      <div key={idx} className="text-sm">{it.desc} — {it.qty} × ${it.price}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {wizardStep === 3 && (
+                <div>
+                  <div className="text-sm text-gray-600">Activity details</div>
+                  <textarea placeholder="Activity description / notes" value={newOrder.notes} onChange={(e)=>setNewOrder(s=>({...s, notes:e.target.value}))} className="mt-2 w-full p-2 border rounded" rows={4}></textarea>
+                  <div className="text-xs text-gray-400 mt-2">Add quotes, attributes or attachments in next steps (if needed)</div>
+                </div>
+              )}
+
+              {wizardStep === 4 && (
+                <div>
+                  <div className="text-sm font-semibold">Review</div>
+                  <div className="mt-3 text-sm">
+                    <div><span className="font-medium">Customer:</span> {newOrder.customerName} • {newOrder.phone}</div>
+                    <div><span className="font-medium">Vehicle:</span> {newOrder.make} {newOrder.model} {newOrder.year}</div>
+                    <div><span className="font-medium">Work types:</span> {(newOrder.workTypes || []).join(", ")}</div>
+                    <div className="mt-2"><span className="font-medium">Items:</span></div>
+                    <div className="mt-1">
+                      {(newOrder.items || []).map((it,idx)=>(
+                        <div key={idx} className="text-sm">{it.desc} — {it.qty} × ${it.price}</div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex items-center gap-2">
+              <div className="flex-1">
+                {wizardStep > 1 && <button onClick={()=>setWizardStep(s=>s-1)} className="px-3 py-1 border rounded">Previous</button>}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {wizardStep < 4 && <button onClick={()=>setWizardStep(s=>s+1)} className="px-3 py-1 bg-[var(--primary)] text-white rounded">Next</button>}
+                {wizardStep === 4 && <button onClick={submitNewOrder} className="px-3 py-1 bg-[var(--primary)] text-white rounded">Submit</button>}
+                <button onClick={()=>{setIsCreateOpen(false); resetWizard();}} className="px-3 py-1 border rounded">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* simple toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+          <div className="bg-gray-900 text-white px-4 py-2 rounded shadow">{toast}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * AddItemInline component - small UI to add item to the new-order wizard
+ */
+function AddItemInline({ onAdd }) {
+  const [desc, setDesc] = useState("");
+  const [qty, setQty] = useState(1);
+  const [price, setPrice] = useState("");
+
+  const add = () => {
+    if (!desc) return;
+    onAdd({ desc, qty: Number(qty || 1), price: Number(price || 0) });
+    setDesc("");
+    setQty(1);
+    setPrice("");
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <input placeholder="Description" value={desc} onChange={(e)=>setDesc(e.target.value)} className="p-2 border rounded flex-1"/>
+      <input placeholder="Qty" type="number" min="1" value={qty} onChange={(e)=>setQty(e.target.value)} className="w-20 p-2 border rounded"/>
+      <input placeholder="Price" type="number" value={price} onChange={(e)=>setPrice(e.target.value)} className="w-28 p-2 border rounded"/>
+      <button onClick={add} className="px-3 py-1 bg-[var(--primary)] text-white rounded">Add</button>
+    </div>
+  );
+}

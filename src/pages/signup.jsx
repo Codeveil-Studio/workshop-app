@@ -111,7 +111,7 @@ export default function Signup() {
           Sign Up
         </h2>
         <p className="text-center text-gray-500 text-sm mb-6">
-          Welcome back, Sign in to continue
+        Join us and start your journey today
         </p>
 
         <form className="flex flex-col gap-4" onSubmit={handleSignup}>
@@ -176,7 +176,7 @@ export default function Signup() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           >
             {submitting ? "Sending OTP..." : "Sign Up"}
           </button>

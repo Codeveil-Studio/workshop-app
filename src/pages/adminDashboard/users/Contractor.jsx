@@ -201,7 +201,7 @@ export default function Contractor({
                   setCreatedAtOpen((v) => !v);
                   setSortMenuOpen(false);
                 }}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-md bg-white text-sm text-gray-700 hover:shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-md bg-white text-sm text-gray-700 hover:shadow-sm cursor-pointer"
                 aria-expanded={createdAtOpen}
               >
                 <span className="text-sm font-medium capitalize">
@@ -222,7 +222,7 @@ export default function Contractor({
                       changeSort("createdAt");
                       setCreatedAtOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer ${
                       sortField === "createdAt" ? "font-semibold" : ""
                     }`}
                   >
@@ -233,7 +233,7 @@ export default function Contractor({
                       changeSort("name");
                       setCreatedAtOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer ${
                       sortField === "name" ? "font-semibold" : ""
                     }`}
                   >
@@ -244,7 +244,7 @@ export default function Contractor({
                       changeSort("email");
                       setCreatedAtOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer ${
                       sortField === "email" ? "font-semibold" : ""
                     }`}
                   >
@@ -261,7 +261,7 @@ export default function Contractor({
                   setSortMenuOpen((v) => !v);
                   setCreatedAtOpen(false);
                 }}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-md bg-white text-sm font-medium text-gray-700 hover:shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-md bg-white text-sm font-medium text-gray-700 hover:shadow-sm cursor-pointer"
               >
                 <IconSort className="w-4 h-4 text-gray-600" />
                 <span>Sort</span>
@@ -276,7 +276,7 @@ export default function Contractor({
                         setSortDirection("desc");
                         setSortMenuOpen(false);
                       }}
-                      className={`flex-1 text-sm px-3 py-2 rounded-md border ${
+                      className={`flex-1 text-sm px-3 py-2 rounded-md border cursor-pointer ${
                         sortDirection === "desc" ? "bg-gray-100" : ""
                       }`}
                     >
@@ -287,7 +287,7 @@ export default function Contractor({
                         setSortDirection("asc");
                         setSortMenuOpen(false);
                       }}
-                      className={`flex-1 text-sm px-3 py-2 rounded-md border ${
+                      className={`flex-1 text-sm px-3 py-2 rounded-md border cursor-pointer ${
                         sortDirection === "asc" ? "bg-gray-100" : ""
                       }`}
                     >
@@ -304,7 +304,7 @@ export default function Contractor({
                           setPageSize(opt);
                           setSortMenuOpen(false);
                         }}
-                        className={`text-sm px-3 py-2 rounded-md border ${
+                        className={`text-sm px-3 py-2 rounded-md border cursor-pointer ${
                           pageSize === opt ? "bg-gray-100" : ""
                         }`}
                       >
@@ -330,7 +330,7 @@ export default function Contractor({
               <button
                 key={c.id}
                 onClick={() => setUserManagementState(prev => ({ ...prev, selectedContractor: c }))}
-                className="w-full text-left flex items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50"
+                className="w-full text-left flex items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50 cursor-pointer"
               >
                 <div className="flex items-center gap-4">
                   <img
@@ -368,7 +368,7 @@ export default function Contractor({
               className={`px-3 py-2 rounded-md border text-sm ${
                 page <= 1
                   ? "text-gray-300 border-gray-100 cursor-not-allowed bg-white"
-                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm"
+                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm cursor-pointer"
               }`}
             >
               Previous
@@ -384,7 +384,7 @@ export default function Contractor({
               className={`px-3 py-2 rounded-md border text-sm ${
                 page >= totalPages
                   ? "text-gray-300 border-gray-100 cursor-not-allowed bg-white"
-                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm"
+                  : "text-gray-700 border-gray-200 bg-white hover:shadow-sm cursor-pointer"
               }`}
             >
               Next

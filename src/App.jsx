@@ -7,7 +7,7 @@ import ForgotPassword from './pages/ForgotPassword.jsx'
 import Signup from './pages/signup.jsx'
 // import Dashboard from './pages/Dashboard.jsx'
 import AdminDashboard from './pages/adminDashboard/AdminDashboard.jsx'
-
+import TechnicianDashboard from './pages/technicianDashboard/TechnicianDashboard.jsx'
 import ContractorDashboard from './pages/contractorDashboard.jsx'
 import Logs from './pages/Logs.jsx'
 import Reports from './pages/Reports.jsx'
@@ -24,6 +24,7 @@ function App() {
         <Route path="/loginselection" element={<LoginSelection />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/admindashboard" element={<AdminDashboard />} />
+        <Route path="/techniciandashboard" element={<TechnicianDashboard />} />
         <Route path="/contractordashboard" element={<ContractorDashboard />} />
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/logs" element={<Logs />} />
