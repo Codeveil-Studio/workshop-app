@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PersonalInformation from "./PersonalInformation";
 import ChangePassword from "./ChangePassword";
+// at the top of your file
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 /* -------------------------
    Icons (use fill="currentColor")
@@ -47,7 +49,7 @@ function IconBack({ className = "w-5 h-5" }) {
    ------------------------- */
 const fetchUsersByRole = async (role) => {
   try {
-    const response = await fetch(`http://localhost:5000/api/auth/users/${role}`);
+    const response = await fetch(`${API_URL}/auth/users/${role}`);
     if (!response.ok) {
       throw new Error('Failed to fetch users');
     }
@@ -61,7 +63,7 @@ const fetchUsersByRole = async (role) => {
 
 const fetchBannedUsersByRole = async (role) => {
   try {
-    const response = await fetch(`http://localhost:5000/api/auth/users/${role}/banned`);
+    const response = await fetch(`${API_URL}/auth/users/${role}/banned`);
     if (!response.ok) {
       throw new Error('Failed to fetch banned users');
     }
@@ -75,7 +77,7 @@ const fetchBannedUsersByRole = async (role) => {
 
 const banUserById = async (userId) => {
   try {
-    const response = await fetch(`http://localhost:5000/api/auth/users/${userId}/ban`, {
+     const response = await fetch(`${API_URL}/auth/users/${userId}/ban`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +96,7 @@ const banUserById = async (userId) => {
 
 const unbanUserById = async (userId) => {
   try {
-    const response = await fetch(`http://localhost:5000/api/auth/users/${userId}/unban`, {
+     const response = await fetch(`${API_URL}/auth/users/${userId}/unban`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

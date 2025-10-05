@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+
 /**
  * Arrow icon for back navigation
  */
@@ -60,7 +63,8 @@ export default function ProfileSettings({ onBack }) {
     useEffect(() => {
         const fetchAdminData = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/auth/admin');
+                const response = await fetch(`${API_URL}/api/auth/admin`);
+
                 const data = await response.json();
 
                 if (data.success && data.admin) {
@@ -102,7 +106,7 @@ export default function ProfileSettings({ onBack }) {
     // Verify password and proceed with profile update
     const verifyPasswordAndUpdateProfile = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/auth/verify-admin-password', {
+           const response = await fetch(`${API_URL}/api/auth/verify-admin-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -116,7 +120,7 @@ export default function ProfileSettings({ onBack }) {
 
             if (data.success) {
                 // Password verified, now update admin profile
-                const updateResponse = await fetch('http://localhost:5000/api/auth/update-admin-profile', {
+                const updateResponse = await fetch(`${API_URL}/api/auth/update-admin-profile`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -170,7 +174,7 @@ export default function ProfileSettings({ onBack }) {
     // Verify password and proceed with password change
     const verifyPasswordAndChangePassword = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/auth/verify-admin-password', {
+            const response = await fetch(`${API_URL}/api/auth/verify-admin-password`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -184,7 +188,7 @@ export default function ProfileSettings({ onBack }) {
 
             if (data.success) {
                 // Password verified, now change admin password
-                const changeResponse = await fetch('http://localhost:5000/api/auth/change-admin-password', {
+                const changeResponse = await fetch(`${API_URL}/api/auth/change-admin-password`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
