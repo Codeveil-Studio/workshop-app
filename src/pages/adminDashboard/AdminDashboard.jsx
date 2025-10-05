@@ -300,6 +300,9 @@ export default function AdminDashboard() {
               } else if (settingsState.workOrderSetting) {
                 headerTitle = settingsState.workOrderSetting
                 headerIconKey = 'settings'
+              } else if (settingsState.selectedSetting === 'Profile Settings') {
+                headerTitle = 'Profile Settings'
+                headerIconKey = 'settings'
               } else if (settingsState.selectedSetting === 'Work Order Settings') {
                 headerTitle = 'Work Order Settings'
                 headerIconKey = 'settings'

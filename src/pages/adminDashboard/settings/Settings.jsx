@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import LaborRates from "./LaborRates";
 import PriceManagement from "./PriceManagement";
 import WorkOrder from "./WorkOrder";
+import ProfileSettings from "./ProfileSettings";
 
 /**
  * Arrow icon as specified
@@ -32,13 +33,17 @@ function ArrowIcon({ className = "" }) {
 export default function Settings({ settingsState, setSettingsState }) {
 
     const items = [
-        "General",
+        "Profile Settings",
         "Work Order Settings",
         "Price/Margin Management",
         "Labor Rates",
         "Language",
     ];
 
+    // If Profile Settings is selected, show ProfileSettings
+    if (settingsState.selectedSetting === "Profile Settings") {
+        return <ProfileSettings onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
+    }
     // If Labor Rates is selected, show LaborRates
     if (settingsState.selectedSetting === "Labor Rates") {
         return <LaborRates onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;

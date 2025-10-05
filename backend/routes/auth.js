@@ -137,6 +137,174 @@ router.get('/user/:email', async (req, res) => {
   }
 });
 
+// Get admin user details (role = admin)
+router.get('/admin', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT id, name, email, role, is_active, isBan, created_at FROM users WHERE role = ?',
+      ['admin']
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Admin user not found' });
+    }
+
+    const admin = rows[0];
+    res.json({ 
+      success: true,
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        isActive: admin.is_active,
+        isBanned: admin.isBan,
+        createdAt: admin.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching admin:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Verify admin password
+router.post('/verify-admin-password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required' });
+    }
+
+    const [rows] = await pool.execute(
+      'SELECT password_hash FROM users WHERE role = ?',
+      ['admin']
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Admin user not found' });
+    }
+
+    const admin = rows[0];
+    const bcrypt = await import('bcrypt');
+    const isValid = await bcrypt.compare(password, admin.password_hash);
+
+    if (isValid) {
+      res.json({ success: true, message: 'Password verified' });
+    } else {
+      res.json({ success: false, message: 'Invalid password' });
+    }
+  } catch (error) {
+    console.error('Error verifying admin password:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Update admin profile
+router.put('/update-admin-profile', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+    }
+
+    // First verify the password
+    const [adminRows] = await pool.execute(
+      'SELECT password_hash FROM users WHERE role = ?',
+      ['admin']
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Admin user not found' });
+    }
+
+    const bcrypt = await import('bcrypt');
+    const isValid = await bcrypt.compare(password, adminRows[0].password_hash);
+
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'Invalid password' });
+    }
+
+    // Check if new email already exists (excluding current admin)
+    const [existingRows] = await pool.execute(
+      'SELECT id FROM users WHERE email = ? AND role != ?',
+      [email, 'admin']
+    );
+
+    if (existingRows.length > 0) {
+      return res.status(409).json({ success: false, message: 'Email already exists' });
+    }
+
+    // Update admin profile
+    const [result] = await pool.execute(
+      'UPDATE users SET name = ?, email = ? WHERE role = ?',
+      [name, email, 'admin']
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Admin user not found' });
+    }
+
+    res.json({ success: true, message: 'Admin profile updated successfully' });
+  } catch (error) {
+    console.error('Error updating admin profile:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Change admin password
+router.put('/change-admin-password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
+    }
+
+    // First verify the current password
+    const [adminRows] = await pool.execute(
+      'SELECT password_hash FROM users WHERE role = ?',
+      ['admin']
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Admin user not found' });
+    }
+
+    const bcrypt = await import('bcrypt');
+    const isValid = await bcrypt.compare(currentPassword, adminRows[0].password_hash);
+
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'Invalid current password' });
+    }
+
+    // Hash new password
+    const saltRounds = Number(process.env.BCRYPT_SALT_ROUNDS || 12);
+    const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update admin password
+    const [result] = await pool.execute(
+      'UPDATE users SET password_hash = ? WHERE role = ?',
+      [newPasswordHash, 'admin']
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Admin user not found' });
+    }
+
+    res.json({ success: true, message: 'Admin password changed successfully' });
+  } catch (error) {
+    console.error('Error changing admin password:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 export default router;
 
 

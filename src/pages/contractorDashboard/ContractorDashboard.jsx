@@ -55,7 +55,7 @@ export default function ContractorDashboard() {
           return;
         }
 
-        const response = await fetch(`http://localhost:5000/api/auth/user/${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`/api/auth/user/${encodeURIComponent(userEmail)}`);
         const data = await response.json();
 
         if (data.success && data.user) {
