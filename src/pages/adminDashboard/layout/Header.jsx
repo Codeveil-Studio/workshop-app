@@ -96,7 +96,10 @@ function SupplierIcon({ className = '' }) {
     )
 }
 
-function Header({ query, setQuery, onAddOrder, activeMenu, editingOrder, onBack, headerTitle, headerIconKey }) {
+import { useState } from 'react'
+
+function Header({ query, setQuery, onAddOrder, activeMenu, editingOrder, onBack, headerTitle, headerIconKey, selectedCategory, onSelectCategory }) {
+    const [showDropdown, setShowDropdown] = useState(false)
     return (
         <>
             <AdminNavbar />
@@ -139,13 +142,28 @@ function Header({ query, setQuery, onAddOrder, activeMenu, editingOrder, onBack,
                         )}
                         {activeMenu === 'Orders' && (
                             <>
-                                <button onClick={onAddOrder} className="bg-[#29cc6a] text-white px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base flex-1 sm:flex-none justify-center cursor-pointer transition-colors duration-200">
-                                    <span className="whitespace-nowrap">Add Order</span>
-                                </button>
-                                <button className="bg-[#29cc6a] text-white px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-[#24b85f] flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base flex-1 sm:flex-none justify-center cursor-pointer transition-colors duration-200">
-                                    <span className="hidden sm:inline">Filters</span>
-                                    <FilterIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowDropdown(prev => !prev)}
+                                        className="flex items-center gap-2 px-2 sm:px-3 py-1.5 border rounded text-[#29cc6a] hover:text-[#1fa554] cursor-pointer"
+                                    >
+                                        <span className="hidden sm:inline">Filter</span>
+                                        <FilterIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    </button>
+                                    {showDropdown && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow z-10">
+                                            {['Requested','Completed','In-Progress','Pending'].map(cat => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => { onSelectCategory && onSelectCategory(cat); setShowDropdown(false) }}
+                                                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 text-sm ${selectedCategory === cat ? 'font-semibold' : ''}`}
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                                 <button onClick={() => window.location.reload()} className="bg-[#29cc6a] text-white p-1.5 sm:p-2 rounded-lg hover:bg-[#24b85f] flex items-center justify-center cursor-pointer transition-colors duration-200">
                                     <RefreshIcon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                                 </button>

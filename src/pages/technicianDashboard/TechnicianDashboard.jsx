@@ -418,14 +418,11 @@ export default function TechnicianDashboard() {
         <div className="flex items-center space-x-3">
           <button
             title="Create Work Order"
-            onClick={() => {
-              setIsCreateOpen(true);
-              resetWizard();
-            }}
-            className="inline-flex items-center gap-2 bg-[var(--primary)] hover:bg-blue-600 text-white px-3 py-2 rounded-md shadow-sm text-sm cursor-pointer"
+             onClick={handleLogout} 
+             className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-md shadow-sm text-sm cursor-pointer transition-colors"
           >
-            <IconPlus />
-            Create
+    
+            Logout
           </button>
 
           <div className="relative">
@@ -475,7 +472,7 @@ export default function TechnicianDashboard() {
                 </>
               )}
             </div>
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-[#29cc6a] font-semibold cursor-pointer" onClick={handleLogout} title="Logout">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-[#29cc6a] font-semibold cursor-pointer">
               {user.name ? user.name.charAt(0).toUpperCase() : 'T'}
             </div>
           </div>
@@ -488,15 +485,15 @@ export default function TechnicianDashboard() {
           <aside className="col-span-3 hidden lg:block">
             <nav className="bg-white rounded-md p-4 shadow-card space-y-2">
               <button onClick={() => setFilterStatus("all")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="all" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>All Work</button>
-              <button onClick={() => setFilterStatus("new")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="new" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>New</button>
+              {/* <button onClick={() => setFilterStatus("new")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="new" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>New</button> */}
               <button onClick={() => setFilterStatus("in_progress")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="in_progress" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>In Progress</button>
               <button onClick={() => setFilterStatus("finished")} className={`w-full text-left p-2 rounded cursor-pointer ${filterStatus==="finished" ? "bg-[var(--primary)] text-white" : "hover:bg-gray-50"}`}>Finished</button>
 
               <div className="border-t pt-3">
                 <div className="text-xs font-semibold text-gray-500">Quick actions</div>
-                <button onClick={() => { setIsCreateOpen(true); resetWizard(); }} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded cursor-pointer">
+                {/* <button onClick={() => { setIsCreateOpen(true); resetWizard(); }} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded cursor-pointer">
                   <IconPlus /> Create Work Order
-                </button>
+                </button> */}
                 <button onClick={() => window.print()} className="w-full mt-2 inline-flex items-center gap-2 bg-white border border-gray-200 text-sm px-3 py-2 rounded cursor-pointer">
                   Print
                 </button>

@@ -7,13 +7,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 /* -------------------------
    Icons (use fill="currentColor")
    ------------------------- */
-function IconSearch({ className = "w-5 h-5" }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      {/* <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="none" /> */}
-    </svg>
-  );
-}
+// function IconSearch({ className = "w-5 h-5" }) {
+//   return (
+//     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+//       {/* <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="none" /> */}
+//     </svg>
+//   );
+// }
 function IconChevronRight({ className = "w-5 h-5" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -334,7 +334,7 @@ export default function DynamicUserManagement({
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            {/* <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" /> */}
             <input
               type="text"
               placeholder="Search users..."

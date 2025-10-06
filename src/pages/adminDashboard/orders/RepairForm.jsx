@@ -5,7 +5,7 @@ function RepairForm({ onCancel, onSubmit }) {
     repairInfo: "",
     activityType: "",
     charges: "",
-    status: "Working",
+    status: "Requested",
     isStatusOpen: false,
   })
 
@@ -92,7 +92,7 @@ function RepairForm({ onCancel, onSubmit }) {
                 </button>
                 {form.isStatusOpen && (
                   <div className="absolute z-10 w-full bottom-full mb-1 bg-white border border-gray-200 rounded-md shadow-lg transform origin-bottom transition-all duration-150 max-h-48 overflow-y-auto custom-scrollbar">
-                    {['Working', 'In Progress', 'Completed', 'Pending'].map((status) => (
+                    {['Requested', 'In Progress', 'Completed', 'Pending'].map((status) => (
                       <div
                         key={status}
                         onClick={() => {
@@ -105,7 +105,7 @@ function RepairForm({ onCancel, onSubmit }) {
                         className={`px-3 py-2 cursor-pointer hover:bg-[#29cc6a] hover:text-white transition-colors duration-150
                           ${form.status === status ? 'bg-[#29cc6a] text-white' : 'text-gray-700'}
                           ${status === 'Pending' ? 'rounded-b-md' : ''}
-                          ${status === 'Working' ? 'rounded-t-md' : ''}`}
+                          ${status === 'Requested' ? 'rounded-t-md' : ''}`}
                       >
                         {status}
                       </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Sidebar from './layout/Sidebar'
 import Header from './layout/Header'
 import OrdersTable from './orders/OrdersTable'
+import OrdersMultiTable from './orders/OrdersMultiTable'
 import KpiCard from './components/KpiCard'
 import Sparkline from './components/Sparkline'
 import Modal from './components/Modal'
@@ -14,6 +15,7 @@ import Settings from './settings/Settings'
 
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard')
+  const [orderFilter, setOrderFilter] = useState(null)
   const [orders, setOrders] = useState([
     {
       id: 'ORD-001',
@@ -113,17 +115,7 @@ export default function AdminDashboard() {
         }
         return (
           <div className="space-y-6">
-            {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-              <KpiCard title="Total Orders" value={orders.length} trend={12} />
-              <KpiCard title="In Progress" value={orders.filter(o => o.status === 'In Progress').length} trend={-3} />
-              <KpiCard title="Completed" value={orders.filter(o => o.status === 'Completed').length} trend={8} />
-            </div> */}
-
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <OrdersTable orders={orders} setOrders={setOrders} onEdit={handleEditRepair} />
-              </div>
-            </div>
+            <OrdersMultiTable orders={orders} onEdit={handleEditRepair} selectedCategory={orderFilter} />
           </div>
         )
       case 'Dashboard':
@@ -336,6 +328,8 @@ export default function AdminDashboard() {
                 }}
                 headerTitle={headerTitle}
                 headerIconKey={headerIconKey}
+                selectedCategory={orderFilter}
+                onSelectCategory={setOrderFilter}
               />
             )
           })()
