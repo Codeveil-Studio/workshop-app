@@ -395,6 +395,44 @@ export default function ContractorDashboard() {
 
   // Wizard navigation
   function goNext() {
+    // Step-wise validations before proceeding
+    if (step === 1) {
+      const allCustomerFilled = (customer.name || "").trim() !== "" && (customer.phone || "").trim() !== "";
+      const allVehicleFilled = [
+        vehicle.make,
+        vehicle.model,
+        vehicle.vin,
+        vehicle.year,
+        vehicle.odometer,
+        vehicle.confirmOdometer,
+        vehicle.trim,
+      ].every((v) => (v || "").toString().trim() !== "");
+
+      if (!allCustomerFilled || !allVehicleFilled) {
+        showToast("Please fill all customer and vehicle fields before continuing.");
+        return;
+      }
+    }
+
+    if (step === 2) {
+      const anyWorkTypeSelected = workTypes.some((w) => w.selected);
+      if (!anyWorkTypeSelected) {
+        showToast("Please select at least one work type to continue.");
+        return;
+      }
+    }
+
+    // Step 3 (Spare Parts) currently optional; no strict validation
+
+    if (step === 4) {
+      const hasDescription = (activity.description || "").trim() !== "";
+      const anyRepairChecked = Object.values(activity.repairs || {}).some(Boolean);
+      if (!hasDescription || !anyRepairChecked) {
+        showToast("Please add activity description and select at least one repair.");
+        return;
+      }
+    }
+
     if (step < steps.length) setStep(step + 1);
   }
   function goPrev() {
@@ -554,7 +592,7 @@ export default function ContractorDashboard() {
                 <ChevronLeft size={14} /> Previous
               </button>
               {step < steps.length && (
-                <button onClick={goNext} className="px-4 py-2 rounded-lg bg-green-600 text-white flex items-center gap-2">
+                <button onClick={goNext} className="px-4 py-2 rounded-lg bg-green-600 text-white flex items-center gap-2 cursor-pointer">
                   Next <ChevronRight size={14} />
                 </button>
               )}

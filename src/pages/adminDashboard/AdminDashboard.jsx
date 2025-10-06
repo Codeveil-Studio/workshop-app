@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Sidebar from './layout/Sidebar'
 import Header from './layout/Header'
-import OrdersTable from './orders/OrdersTable'
+// import OrdersTable from './orders/OrdersTable'
 import OrdersMultiTable from './orders/OrdersMultiTable'
 import KpiCard from './components/KpiCard'
 import Sparkline from './components/Sparkline'
