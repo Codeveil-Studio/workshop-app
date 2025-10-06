@@ -156,8 +156,8 @@ router.get('/', async (req, res) => {
   let sql = `SELECT id, customer_name, vehicle_make, vehicle_model, vehicle_year, status, quote_total, updated_at, created_at FROM work_orders`;
   const params = [];
   if (status) {
-    sql += ` WHERE status = ?`;
-    params.push(status);
+    sql += ` WHERE LOWER(TRIM(status)) = ?`;
+    params.push(String(status).toLowerCase().trim());
   }
 
   try {
@@ -172,6 +172,8 @@ router.get('/', async (req, res) => {
       const statusMap = {
         'requested': 'Requested',
         'in-progress': 'In Process',
+        'in_progress': 'In Process',
+        'in progress': 'In Process',
         'completed': 'Completed',
         'pending': 'Pending',
         'accepted': 'In Process',
@@ -190,6 +192,71 @@ router.get('/', async (req, res) => {
     res.json({ success: true, orders });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Fetch full details of a single work order
+router.get('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  try {
+    const [orders] = await pool.query(`SELECT * FROM work_orders WHERE id = ?`, [id]);
+    if (!orders.length) return res.status(404).json({ success: false, error: 'Not found' });
+    const order = orders[0];
+    const [items] = await pool.query(`SELECT * FROM work_order_items WHERE work_order_id = ?`, [id]);
+    const [workTypes] = await pool.query(`SELECT * FROM work_order_work_types WHERE work_order_id = ?`, [id]);
+    const [photos] = await pool.query(`SELECT * FROM work_order_photos WHERE work_order_id = ?`, [id]);
+    res.json({ success: true, order, items, work_types: workTypes, photos });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Update status of a work order
+router.put('/:id/status', async (req, res) => {
+  const id = Number(req.params.id);
+  const { status, accepted_by } = req.body || {};
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  if (!status) return res.status(400).json({ success: false, error: 'Missing status' });
+  try {
+    // If accepted_by is provided and status is in_progress, persist it.
+    let sql = `UPDATE work_orders SET status = ?, updated_at = NOW()`;
+    const params = [status, id];
+    if (accepted_by && String(status).toLowerCase().replace(/\s+/g, '_') === 'in_progress') {
+      sql = `UPDATE work_orders SET status = ?, accepted_by = ?, updated_at = NOW() WHERE id = ?`;
+      params.splice(1, 0, accepted_by);
+    } else {
+      sql = `UPDATE work_orders SET status = ?, updated_at = NOW() WHERE id = ?`;
+    }
+
+    const [result] = await pool.query(sql, params);
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Delete a work order (and its related records)
+router.delete('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    await conn.query(`DELETE FROM work_order_photos WHERE work_order_id = ?`, [id]);
+    await conn.query(`DELETE FROM work_order_work_types WHERE work_order_id = ?`, [id]);
+    await conn.query(`DELETE FROM work_order_items WHERE work_order_id = ?`, [id]);
+    const [result] = await conn.query(`DELETE FROM work_orders WHERE id = ?`, [id]);
+    await conn.commit();
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    if (conn) await conn.rollback();
+    res.status(500).json({ success: false, error: e.message });
+  } finally {
+    if (conn) conn.release();
   }
 });
 

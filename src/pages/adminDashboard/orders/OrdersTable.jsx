@@ -14,7 +14,7 @@ function EditIcon({ className = '' }) {
   )
 }
 
-function OrdersTable({ orders, onEdit }) {
+function OrdersTable({ orders, onEdit, onAccept, onDecline, showActions = false, showStatus = true }) {
   return (
     <div className="bg-white rounded-lg overflow-hidden">
       <div className="hidden sm:block">
@@ -24,7 +24,11 @@ function OrdersTable({ orders, onEdit }) {
               <th className="px-4 py-3 text-sm font-semibold">#Work Order</th>
               <th className="px-4 py-3 text-sm font-semibold">Order Details</th>
               <th className="px-4 py-3 text-sm font-semibold">Charges</th>
-              <th className="px-4 py-3 text-sm font-semibold">Status</th>
+              {showActions ? (
+                <th className="px-4 py-3 text-sm font-semibold">Actions</th>
+              ) : showStatus ? (
+                <th className="px-4 py-3 text-sm font-semibold">Status</th>
+              ) : null}
               <th className="px-4 py-3 text-sm font-semibold">Updated At</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -38,7 +42,26 @@ function OrdersTable({ orders, onEdit }) {
                 <td className="px-4 py-4 text-sm font-semibold">{order.id}</td>
                 <td className="px-4 py-4 text-sm font-semibold">{order.title}</td>
                 <td className="px-4 py-4 text-sm font-semibold">${order.charges}</td>
-                <td className="px-4 py-4 text-sm font-semibold">{order.status}</td>
+                {showActions ? (
+                  <td className="px-4 py-4 text-sm font-semibold">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onAccept?.(order)}
+                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => onDecline?.(order)}
+                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </td>
+                ) : showStatus ? (
+                  <td className="px-4 py-4 text-sm font-semibold">{order.status}</td>
+                ) : null}
                 <td className="px-4 py-4 text-sm font-semibold">
                   <div className="flex flex-col">
                     <span>{new Date(order.updatedAt).toLocaleDateString()}</span>

@@ -30,60 +30,8 @@ export default function TechnicianDashboard() {
   const [userLoading, setUserLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // --- sample data inspired by your uploaded PDF frames (IDs, VINs, Mr John, Dave etc.)
-  const initialOrders = [
-    {
-      id: "W01",
-      title: "Car Engine Repair",
-      slot: "8:00 AM - 5:00 PM",
-      assignedBy: "Mr. John",
-      customerName: "Dave",
-      vehicle: "Maruti",
-      vin: "#8393038",
-      phone: "9112345678",
-      modelYear: 2017,
-      repairType: "Break",
-      status: "new", // new | in_progress | waiting | finished | declined
-      date: "2023-07-03",
-      items: [
-        { desc: "Labor", qty: 1, price: 80 },
-        { desc: "Hood", qty: 1, price: 120 },
-      ],
-      notes: "Engine noise, check compression.",
-    },
-    {
-      id: "W02",
-      title: "Oil Change",
-      slot: "9:00 AM - 11:00 AM",
-      assignedBy: "Mr. Jacob",
-      customerName: "Sarah",
-      vehicle: "Toyota Corolla",
-      vin: "#1234567",
-      phone: "9123456780",
-      modelYear: 2018,
-      repairType: "Oil change",
-      status: "in_progress",
-      date: "2023-07-02",
-      items: [{ desc: "Oil", qty: 1, price: 36 }, { desc: "Labor", qty: 1, price: 70 }],
-      notes: "Use synthetic oil.",
-    },
-    {
-      id: "W03",
-      title: "Brake Replacement",
-      slot: "10:00 AM - 2:00 PM",
-      assignedBy: "Mr. John",
-      customerName: "Mike",
-      vehicle: "Honda Civic",
-      vin: "#8393099",
-      phone: "9198765432",
-      modelYear: 2016,
-      repairType: "Brake",
-      status: "finished",
-      date: "2023-07-01",
-      items: [{ desc: "Brake Pads", qty: 2, price: 106 }, { desc: "Labor", qty: 1, price: 120 }],
-      notes: "Customer requested OEM pads.",
-    },
-  ];
+  // Remove hardcoded orders; will fetch pending orders from API
+  const initialOrders = [];
 
   const initialNotifications = [
     { id: 1, text: "New car repair work posted by Mr John.", time: "11:10 pm", read: false },
@@ -93,6 +41,10 @@ export default function TechnicianDashboard() {
 
   // --- state
   const [orders, setOrders] = useState(initialOrders);
+  const [confirmModal, setConfirmModal] = useState({ open: false, type: null, order: null });
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const listEndpoint = `${API_URL}/work-orders?status=pending`;
+  const statusEndpoint = (id) => `${API_URL}/work-orders/${id}/status`;
   const [query, setQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -119,13 +71,24 @@ export default function TechnicianDashboard() {
   });
 
   // --- helpers
-  const statusMeta = {
-    new: { label: "New", color: "bg-blue-100 text-blue-800", dot: "#29cc6a" },
-    in_progress: { label: "In Progress", color: "bg-orange-100 text-orange-800", dot: "#FF9500" },
-    waiting: { label: "Waiting", color: "bg-yellow-100 text-yellow-800", dot: "#FFCC00" },
-    finished: { label: "Finished", color: "bg-green-100 text-green-800", dot: "#34C759" },
-    declined: { label: "Declined", color: "bg-red-100 text-red-800", dot: "#FF3B30" },
+const statusMeta = {
+  requested: { label: "Requested", color: "bg-blue-100 text-blue-800", dot: "#29cc6a" },
+  accepted: { label: "accepted", color: "bg-blue-100 text-blue-800", dot: "#29cc6a" },
+  in_progress: { label: "In Progress", color: "bg-orange-100 text-orange-800", dot: "#FF9500" },
+  pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800", dot: "#FFCC00" },
+  completed: { label: "Completed", color: "bg-green-100 text-green-800", dot: "#34C759" },
+  cancelled: { label: "Cancelled", color: "bg-red-100 text-red-800", dot: "#FF3B30" },
+};
+
+  // Normalize various status formats to our keys and provide safe meta
+  const normalizeStatusKey = (s) => {
+    const k = String(s || '').toLowerCase().trim();
+    if (k === 'in-progress' || k === 'in progress') return 'in_progress';
+    return k;
   };
+  const defaultStatusMeta = { label: 'Unknown', color: 'bg-gray-100 text-gray-800', dot: '#9CA3AF' };
+  const getStatusMeta = (s) => statusMeta[normalizeStatusKey(s)] || defaultStatusMeta;
+
 
   const showToast = (msg, ms = 3000) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -133,18 +96,65 @@ export default function TechnicianDashboard() {
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
 
-  const acceptOrder = (id) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: "in_progress", acceptedAt: new Date().toISOString() } : o))
-    );
-    setNotifications((n) => [{ id: Date.now(), text: `You accepted ${id}`, time: "now", read: false }, ...n]);
-    showToast("Work order accepted");
+  const fetchPendingOrders = async () => {
+    try {
+      const res = await fetch(listEndpoint);
+      console.log("Fetching from:", listEndpoint);
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to load');
+      // orders shape: { id, title, charges, status, updatedAt }
+      const pendingList = Array.isArray(data.orders) ? data.orders : [];
+      if (pendingList.length > 0) {
+        setOrders(pendingList);
+        return;
+      }
+      // Fallback: load all and filter by display status 'Pending' case-insensitively
+      const resAll = await fetch(`${API_URL}/work-orders`);
+      const dataAll = await resAll.json();
+      if (!resAll.ok || !dataAll?.success) throw new Error(dataAll?.error || 'Failed to load all');
+      const all = Array.isArray(dataAll.orders) ? dataAll.orders : [];
+      const filtered = all.filter((o) => String(o.status).toLowerCase() === 'pending');
+      setOrders(filtered);
+    } catch (e) {
+      console.error('Pending orders fetch failed:', e);
+      setOrders([]);
+    }
   };
 
-  const declineOrder = (id) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: "declined" } : o)));
-    setNotifications((n) => [{ id: Date.now(), text: `You declined ${id}`, time: "now", read: false }, ...n]);
-    showToast("Work order declined");
+  useEffect(() => {
+    fetchPendingOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const acceptOrder = (order) => {
+    setConfirmModal({ open: true, type: 'accept', order });
+  };
+
+  // Decline action removed per requirement
+
+  const closeConfirm = () => setConfirmModal({ open: false, type: null, order: null });
+
+  const performConfirm = async () => {
+    const { type, order } = confirmModal;
+    if (!type || !order) return closeConfirm();
+    try {
+      const newStatus = type === 'accept' ? 'in_progress' : 'requested';
+      const technicianEmail = user?.email || localStorage.getItem('userEmail') || '';
+      const res = await fetch(statusEndpoint(order.id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, accepted_by: technicianEmail })
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Status update failed');
+      await fetchPendingOrders();
+      showToast(type === 'accept' ? 'Work order accepted successfully!' : 'Work order declined');
+      closeConfirm();
+    } catch (e) {
+      console.error('Confirm action failed:', e);
+      showToast('Action failed');
+      closeConfirm();
+    }
   };
 
   const openDetails = (order) => {
@@ -168,7 +178,7 @@ export default function TechnicianDashboard() {
   });
 
   const counts = {
-    new: orders.filter((o) => o.status === "new").length,
+    new: orders.length,
     in_progress: orders.filter((o) => o.status === "in_progress").length,
     finished: orders.filter((o) => o.status === "finished").length,
   };
@@ -304,7 +314,7 @@ export default function TechnicianDashboard() {
           return;
         }
 
-        const response = await fetch(`http://localhost:5000/api/auth/user/${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`${API_URL}/auth/user/${encodeURIComponent(userEmail)}`);
         const data = await response.json();
 
         if (data.success && data.user) {
@@ -549,46 +559,36 @@ export default function TechnicianDashboard() {
               </div>
             </div>
 
-            {/* Work Orders List */}
+            {/* Latest Work Orders: show pending-only, with themed actions */}
             <div className="bg-white p-4 rounded-md shadow-card">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Latest Work Orders</h2>
-                <div className="text-sm text-gray-500">{filteredOrders.length} items</div>
+                <div className="text-sm text-gray-500">{orders.length} items</div>
               </div>
 
               <div className="mt-4 space-y-3">
-                {filteredOrders.length === 0 && <div className="p-6 text-sm text-gray-500">No matching work orders.</div>}
-                {filteredOrders.map((o) => (
+                {orders.length === 0 && <div className="p-6 text-sm text-gray-500">No pending work orders to show.</div>}
+                {orders.map((o) => (
                   <div key={o.id} className="flex items-start gap-4 p-3 border border-gray-300 rounded-md">
                     <div className="w-12 h-12 rounded-md bg-green-100 flex items-center justify-center text-[#29cc6a] font-semibold">
-                      {o.customerName?.[0] || "U"}
+                      {(o.title?.[0] || 'W')}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-semibold">{o.title} <span className="text-xs text-gray-400">• {o.id}</span></div>
-                          <div className="text-xs text-gray-500">{o.customerName} • {o.vehicle} • {o.vin}</div>
+                          <div className="font-semibold">{o.title || `${o.vehicle_make || ''} ${o.vehicle_model || ''}`.trim() || 'Work Order'} <span className="text-xs text-gray-400">• {o.id}</span></div>
+                          <div className="text-xs text-gray-500">Updated: {(o.updatedAt || o.updated_at || o.created_at) ? new Date(o.updatedAt || o.updated_at || o.created_at).toLocaleString() : '—'}</div>
                         </div>
                         <div className="text-right">
-                          <div className="text-xs text-gray-400">{o.slot}</div>
-                          <div className="text-sm mt-1 flex items-center gap-2">
-                            <span className={`px-2 py-1 rounded-full text-xs ${statusMeta[o.status].color}`}>{statusMeta[o.status].label}</span>
+                          <div className="text-sm mt-1">
+                            <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">Pending</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-3 flex items-center gap-3">
-                        {o.status === "new" && (
-                          <>
-                            <button onClick={() => acceptOrder(o.id)} className="text-sm bg-[var(--primary)] text-white px-3 py-1 rounded cursor-pointer">Accept</button>
-                            <button onClick={() => declineOrder(o.id)} className="text-sm border border-gray-200 px-3 py-1 rounded text-red-600 cursor-pointer">Decline</button>
-                          </>
-                        )}
-
-                        {o.status === "in_progress" && <div className="text-sm text-gray-600">Working — keep updating progress</div>}
-                        {o.status === "finished" && <div className="text-sm text-gray-600">Completed</div>}
-
-                        <button onClick={() => openDetails(o)} className="ml-auto text-sm text-[var(--primary)] hover:underline cursor-pointer">View details</button>
+                        <button onClick={() => acceptOrder(o)} className="text-sm bg-[var(--primary)] text-white px-3 py-1 rounded cursor-pointer">Accept</button>
+                        <button onClick={() => openDetails(o)} className="text-sm border border-gray-200 px-3 py-1 rounded text-gray-700 hover:bg-gray-50 cursor-pointer">Details</button>
                       </div>
                     </div>
                   </div>
@@ -624,7 +624,7 @@ export default function TechnicianDashboard() {
                           <td className="py-3">{o.vehicle}</td>
                           <td className="py-3">{o.date}</td>
                           <td className="py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs ${statusMeta[o.status].color}`}>{statusMeta[o.status].label}</span>
+                            <span className={`px-2 py-1 rounded-full text-xs ${getStatusMeta(o.status).color}`}>{getStatusMeta(o.status).label}</span>
                           </td>
                           <td className="py-3">
                             <button onClick={() => openDetails(o)} className="text-sm text-[var(--primary)] hover:underline cursor-pointer">View</button>
@@ -673,7 +673,7 @@ export default function TechnicianDashboard() {
               <div>
                 <div className="text-xs text-gray-500">Status</div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs ${statusMeta[selectedOrder.status].color}`}>{statusMeta[selectedOrder.status].label}</span>
+                  <span className={`px-3 py-1 rounded-full text-xs ${getStatusMeta(selectedOrder.status).color}`}>{getStatusMeta(selectedOrder.status).label}</span>
                 </div>
 
                 <div className="mt-3 text-xs text-gray-500">Date</div>
@@ -726,6 +726,25 @@ export default function TechnicianDashboard() {
               )}
               <button onClick={() => downloadInvoice(selectedOrder)} className="border px-3 py-1 rounded cursor-pointer">Generate Invoice</button>
               <button onClick={closeDetails} className="text-sm ml-auto text-gray-600 cursor-pointer">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-100 text-green-600">✔</div>
+              <h3 className="text-lg font-semibold text-black">Accept Work Order</h3>
+            </div>
+            <p className="text-sm text-gray-700 mb-6">
+              Accepting will move this work to In Progress.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={closeConfirm} className="px-4 py-2 border rounded-md hover:bg-gray-50 cursor-pointer">Cancel</button>
+              <button onClick={performConfirm} className="px-4 py-2 rounded-md text-white cursor-pointer bg-[var(--primary)] hover:brightness-95">Accept</button>
             </div>
           </div>
         </div>
