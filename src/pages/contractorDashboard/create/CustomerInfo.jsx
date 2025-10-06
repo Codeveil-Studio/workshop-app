@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Upload, X } from "lucide-react";
 
-export default function CustomerInfo({ customer, setCustomer, vehicle, setVehicle }) {
+export default function CustomerInfo({ customer, setCustomer, vehicle, setVehicle, vehiclePhotos, setVehiclePhotos }) {
   const [focusedField, setFocusedField] = useState(null);
-  const [vehiclePhotos, setVehiclePhotos] = useState([]);
 
   // Helper function to determine input border style
   const getInputStyle = (fieldName, value) => {
@@ -141,7 +140,7 @@ export default function CustomerInfo({ customer, setCustomer, vehicle, setVehicl
         </div>
 
         {/* Photo Preview Grid */}
-        {vehiclePhotos.length > 0 && (
+        {vehiclePhotos && vehiclePhotos.length > 0 && (
           <div className="grid grid-cols-3 gap-3">
             {vehiclePhotos.map((photo) => (
               <div key={photo.id} className="relative group">

@@ -173,6 +173,8 @@ export default function ContractorDashboard() {
       other: false,
     },
   });
+  // Vehicle photos lifted to parent for submission
+  const [vehiclePhotos, setVehiclePhotos] = useState([]);
 
   // work orders state with initial sample data for the Home grid with extended data for invoice functionality
   const [workOrders, setWorkOrders] = useState([
@@ -485,41 +487,103 @@ export default function ContractorDashboard() {
     setShowLogoutModal(false);
   };
 
-  const handleSubmitWorkOrder = () => {
-    // Create new work order from wizard data
-    const newWorkOrder = {
-      id: Math.floor(Math.random() * 9000) + 1000, // Generate random 4-digit ID
-      image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60", // Default image
-      make: vehicle.make || "Unknown",
-      model: vehicle.model || "Unknown",
-      year: vehicle.year || new Date().getFullYear(),
-      customerName: customer.name || "Unknown Customer",
-      phone: customer.phone || "",
-      vin: vehicle.vin || "",
-      date: new Date().toISOString().split('T')[0],
-      status: "Open",
+  const handleSubmitWorkOrder = async () => {
+    // Build payload for API
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const base = (API_URL || '').replace(/\/+$/, '');
+    const path = /\/api\/?$/.test(base) ? `${base}/work-orders` : `${base}/api/work-orders`;
+    const repairsArray = Object.entries(activity.repairs || {})
+      .filter(([, v]) => !!v)
+      .map(([k]) => k);
+
+    const payload = {
+      created_by: user?.email || localStorage.getItem('userEmail') || '',
+      status: 'requested',
+      customer: {
+        name: customer.name,
+        phone: customer.phone,
+      },
+      vehicle: {
+        make: vehicle.make,
+        model: vehicle.model,
+        vin: vehicle.vin,
+        year: vehicle.year,
+        odometer: vehicle.odometer,
+        trim: vehicle.trim,
+      },
+      activity: {
+        type: activity.type,
+        description: activity.description,
+        repairs: activity.repairs, // also send full object for backend JSON
+      },
+      paint_codes: [], // reserved; wire from ActivityDetails if needed
+      quote: {
+        subtotal,
+        tax,
+        total: grandTotal,
+      },
       items: [
-        ...partsCart.map(part => ({ desc: part.title, qty: part.qty, price: part.price })),
-        { desc: "Labor", qty: 1, price: 60 } // Default labor charge
-      ]
+        // parts from cart
+        ...partsCart.map((p) => ({ description: p.title, qty: p.qty, unit_price: p.price })),
+        // labour derived from selected work types
+        ...workTypes.filter((w) => w.selected).map((w) => ({ description: `${w.title} (labour)`, qty: 1, unit_price: 60 })),
+        // repairs flat rate
+        ...repairsArray.map((rk) => ({ description: rk.replace(/([A-Z])/g, ' $1'), qty: 1, unit_price: 25 })),
+      ],
+      work_types: workTypes.filter((w) => w.selected).map((w) => ({ id: w.id, title: w.title })),
+      photos: (vehiclePhotos || []).map((ph) => ({ url: ph.url, name: ph.name })),
     };
 
-    // Add to work orders list
-    setWorkOrders(prev => [newWorkOrder, ...prev]);
-    
-    // Show success message
-    setToast("Work Order Created Successfully!");
-    
-    // Reset wizard and go to home
-    resetWizard();
-    setActiveTab("home");
+    try {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : null;
+
+      if (!res.ok || !data?.success) {
+        console.error('Failed to submit work order:', data?.error || res.statusText);
+        showToast('Failed to submit work order');
+        return;
+      }
+
+      console.log(`Work order inserted successfully. ID: ${data.id}`);
+      showToast('Work Order Created Successfully!');
+
+      // Optimistically add to local list (optional)
+      const newWorkOrder = {
+        id: data.id,
+        image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60",
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year || new Date().getFullYear(),
+        customerName: customer.name,
+        phone: customer.phone,
+        vin: vehicle.vin,
+        date: new Date().toISOString().split('T')[0],
+        status: 'requested',
+        items: payload.items.map(it => ({ desc: it.description, qty: it.qty, price: it.unit_price })),
+      };
+      setWorkOrders(prev => [newWorkOrder, ...prev]);
+
+      // Reset wizard and go to home
+      resetWizard();
+      setActiveTab('home');
+    } catch (e) {
+      console.error('Error submitting work order:', e);
+      showToast('Error submitting work order');
+    }
   };
 
   // Render step content
   const renderStepContent = () => {
     switch (step) {
       case 1:
-        return <CustomerInfo customer={customer} setCustomer={setCustomer} vehicle={vehicle} setVehicle={setVehicle} />;
+        return <CustomerInfo customer={customer} setCustomer={setCustomer} vehicle={vehicle} setVehicle={setVehicle} vehiclePhotos={vehiclePhotos} setVehiclePhotos={setVehiclePhotos} />;
       case 2:
         return <WorkTypes workTypes={workTypes} toggleWorkTypeSelection={toggleWorkTypeSelection} />;
       case 3:

@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import OrdersTable from './OrdersTable'
 
-const DEFAULT_ORDER = ['Requested', 'Completed', 'In-Progress', 'Pending']
+const DEFAULT_ORDER = ['Requested', 'In Process', 'Completed', 'Pending']
 
 function FilterIcon({ className = '' }) {
   return (
@@ -16,9 +16,38 @@ function FilterIcon({ className = '' }) {
   )
 }
 
-export default function OrdersMultiTable({ orders, onEdit, selectedCategory }) {
-  // For now, same data in all tables
+export default function OrdersMultiTable({ orders: initialOrders, onEdit, selectedCategory }) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [orders, setOrders] = useState(initialOrders || [])
   const categories = DEFAULT_ORDER
+
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    const base = (API_URL || '').replace(/\/+$/, '')
+    const endpoint = /\/api\/?$/.test(base) ? `${base}/work-orders` : `${base}/api/work-orders`
+
+    const fetchOrders = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const res = await fetch(endpoint)
+        const ct = res.headers.get('content-type') || ''
+        const isJson = ct.includes('application/json')
+        const data = isJson ? await res.json() : null
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || res.statusText)
+        }
+        setOrders(Array.isArray(data.orders) ? data.orders : [])
+      } catch (e) {
+        setError(e.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchOrders()
+  }, [])
 
   const orderedCategories = useMemo(() => {
     if (!selectedCategory) return categories
@@ -27,17 +56,29 @@ export default function OrdersMultiTable({ orders, onEdit, selectedCategory }) {
 
   return (
     <div className="space-y-6">
-      {/* Render 4 tables in ordered sequence; data same for now */}
-      {orderedCategories.map((cat) => (
-        <div key={cat} className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="text-md sm:text-lg font-semibold text-black">{cat}</h3>
+      {loading && (
+        <div className="p-4 text-sm text-gray-600">Loading work orders…</div>
+      )}
+      {error && (
+        <div className="p-4 text-sm text-red-600">Failed to load: {error}</div>
+      )}
+      {!loading && !error && orderedCategories.map((cat) => {
+        const catOrders = orders.filter(o => o.status === cat)
+        return (
+          <div key={cat} className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200">
+              <h3 className="text-md sm:text-lg font-semibold text-black">{cat}</h3>
+            </div>
+            <div className="overflow-x-auto">
+              {catOrders.length > 0 ? (
+                <OrdersTable orders={catOrders} onEdit={onEdit} />
+              ) : (
+                <div className="px-4 py-6 text-sm text-gray-500">{`No ${cat} Work Orders`}</div>
+              )}
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <OrdersTable orders={orders} onEdit={onEdit} />
-          </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

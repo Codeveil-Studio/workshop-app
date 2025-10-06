@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import authRoutes from './routes/auth.js';
+import workOrdersRoutes from './routes/workOrders.js';
 import pool from './config/db.js';
 import transporter from './config/mail.js';
 
@@ -53,6 +54,7 @@ app.get('/api/health/schema', async (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/work-orders', workOrdersRoutes);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
