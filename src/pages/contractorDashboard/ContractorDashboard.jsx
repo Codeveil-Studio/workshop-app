@@ -176,112 +176,71 @@ export default function ContractorDashboard() {
   // Vehicle photos lifted to parent for submission
   const [vehiclePhotos, setVehiclePhotos] = useState([]);
 
-  // work orders state with initial sample data for the Home grid with extended data for invoice functionality
-  const [workOrders, setWorkOrders] = useState([
-    { 
-      id: 7836, 
-      image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60", 
-      make: "BMW", 
-      model: "X5",
-      year: 2018,
-      customerName: "Michael Smith",
-      phone: "555-123-4567",
-      vin: "WBA12345678901234",
-      date: "2023-07-03",
-      status: "Open",
-      items: [
-        { desc: "Oil Change", qty: 1, price: 89.99 },
-        { desc: "Air Filter", qty: 1, price: 45.50 },
-      ]
-    },
-    { 
-      id: 4566, 
-      image: "https://images.unsplash.com/photo-1502877338535-766e1452684a?w=600&q=60", 
-      make: "Audi", 
-      model: "A4",
-      year: 2019,
-      customerName: "Sarah Johnson",
-      phone: "555-987-6543",
-      vin: "WAU98765432109876",
-      date: "2023-06-28",
-      status: "Open",
-      items: [
-        { desc: "Brake Pads", qty: 2, price: 120.00 },
-        { desc: "Labor", qty: 1, price: 150.00 },
-      ]
-    },
-    { 
-      id: 5966, 
-      image: "https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=600&q=60", 
-      make: "Toyota", 
-      model: "Camry",
-      year: 2016,
-      customerName: "David Wilson",
-      phone: "555-456-7890",
-      vin: "JT765432109876543",
-      date: "2023-07-01",
-      status: "Open",
-      items: [
-        { desc: "Timing Belt", qty: 1, price: 180.00 },
-        { desc: "Water Pump", qty: 1, price: 95.00 },
-        { desc: "Labor", qty: 1, price: 220.00 },
-      ]
-    },
-    { 
-      id: 8971, 
-      image: "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=600&q=60", 
-      make: "Ford", 
-      model: "F-150",
-      year: 2020,
-      customerName: "Jennifer Brown",
-      phone: "555-234-5678",
-      vin: "1FT8765432109876",
-      date: "2023-06-25",
-      status: "Open",
-      items: [
-        { desc: "Suspension Check", qty: 1, price: 75.00 },
-      ]
-    },
-    { 
-      id: 4521, 
-      image: "https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?w=600&q=60", 
-      make: "Honda", 
-      model: "Civic",
-      year: 2017,
-      customerName: "Robert Davis",
-      phone: "555-345-6789",
-      vin: "2HG876543210987",
-      date: "2023-07-02",
-      status: "Open",
-      items: [
-        { desc: "AC Repair", qty: 1, price: 250.00 },
-        { desc: "Refrigerant", qty: 1, price: 65.00 },
-      ]
-    },
-    { 
-      id: 8907, 
-      image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60", 
-      make: "Mercedes", 
-      model: "C-Class",
-      year: 2021,
-      customerName: "Emily Martinez",
-      phone: "555-567-8901",
-      vin: "WDD98765432109",
-      date: "2023-06-30",
-      status: "Open",
-      items: [
-        { desc: "Diagnostic", qty: 1, price: 120.00 },
-        { desc: "Software Update", qty: 1, price: 85.00 },
-      ]
-    },
-  ]);
+  // Work orders fetched from backend
+  const [workOrders, setWorkOrders] = useState([]);
 
-  // Ongoing work sample (small avatars)
-  const ongoing = [
-    { id: 1111, title: "John - Oil Change", progress: 20, avatar: "https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=200&q=60" },
-    { id: 2222, title: "Maria - Brake Fix", progress: 65, avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&q=60" },
-    { id: 3333, title: "Alex - Diagnostics", progress: 40, avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&q=60" },
-  ];
+  // Fetch work orders from backend (MySQL) and map for UI
+  useEffect(() => {
+    const fetchWorkOrders = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const base = (API_URL || '').replace(/\/+$/, '');
+        const path = /\/api\/?$/.test(base) ? `${base}/work-orders` : `${base}/api/work-orders`;
+
+        const res = await fetch(path);
+        const contentType = res.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const data = isJson ? await res.json() : null;
+        if (!res.ok || !data?.success) {
+          console.error('Failed to fetch work orders:', data?.error || res.statusText);
+          return;
+        }
+
+        const placeholderImg = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60';
+        const mapped = (data.orders || []).map((o) => ({
+          id: o.id,
+          image: o.image || placeholderImg,
+          make: o.make || o.vehicle_make || '',
+          model: o.model || o.vehicle_model || '',
+          year: o.year || o.vehicle_year || '',
+          customerName: o.customerName || o.customer_name || '',
+          phone: o.phone || o.customer_phone || '',
+          vin: o.vin || o.vehicle_vin || '',
+          date: (() => {
+            const d = o.date || o.created_at || o.updatedAt;
+            try { return d ? new Date(d).toISOString().split('T')[0] : ''; } catch { return ''; }
+          })(),
+          status: o.status || 'Open',
+          total: typeof o.total !== 'undefined' ? Number(o.total) : (typeof o.charges !== 'undefined' ? Number(o.charges) : (typeof o.quote_total !== 'undefined' ? Number(o.quote_total) : 0)),
+          created_by: o.created_by || o.createdBy || '',
+          items: Array.isArray(o.items) ? o.items : [],
+        }));
+
+        setWorkOrders(mapped);
+      } catch (err) {
+        console.error('Error fetching work orders:', err);
+      }
+    };
+
+    fetchWorkOrders();
+  }, []);
+
+  // Ongoing work: show only work orders created by you with status "in process"
+  const ongoing = useMemo(() => {
+    const email = ((user && user.email) || localStorage.getItem('userEmail') || '').toLowerCase();
+    return workOrders
+      .filter(o => (o.created_by || '').toLowerCase() === email)
+      .filter(o => {
+        const s = String(o.status || '').toLowerCase().replace(/[\s-]+/g, '_');
+        return s === 'in_process';
+      })
+      .map(o => ({
+        id: o.id,
+        title: `${o.customerName || ''} - ${o.make || ''} ${o.model || ''}`.trim(),
+        progress: 50,
+        avatar: (o.image || 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c?w=200&q=60'),
+      }));
+  }, [workOrders, user]);
   
   // Invoice download functionality
   const downloadInvoice = (order) => {
@@ -607,6 +566,7 @@ export default function ContractorDashboard() {
             workOrders={filteredWorkOrders} 
             selectedWorkOrder={selectedWorkOrder} 
             setSelectedWorkOrder={setSelectedWorkOrder} 
+            onOrdersClick={() => setActiveTab("orders")}
             onDownloadInvoice={downloadInvoice}
           />
           <OngoingWork ongoing={ongoing} onCreateClick={handleCreateClick} />
@@ -687,7 +647,7 @@ export default function ContractorDashboard() {
     }
 
     if (activeTab === "orders") {
-      return <Orders workOrders={workOrders} setWorkOrders={setWorkOrders} selectedWorkOrder={selectedWorkOrder} setSelectedWorkOrder={setSelectedWorkOrder} />;
+      return <Orders workOrders={workOrders} setWorkOrders={setWorkOrders} selectedWorkOrder={selectedWorkOrder} setSelectedWorkOrder={setSelectedWorkOrder} userEmail={user?.email || ''} />;
     }
 
     return null;

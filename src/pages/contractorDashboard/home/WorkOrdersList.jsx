@@ -1,7 +1,7 @@
 import React from "react";
 import { Download } from "lucide-react";
 
-export default function WorkOrdersList({ workOrders, selectedWorkOrder, setSelectedWorkOrder, onDownloadInvoice }) {
+export default function WorkOrdersList({ workOrders, selectedWorkOrder, setSelectedWorkOrder, onDownloadInvoice, onOrdersClick }) {
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
@@ -13,7 +13,7 @@ export default function WorkOrdersList({ workOrders, selectedWorkOrder, setSelec
         {workOrders.map((wo) => (
           <div
             key={wo.id}
-            onClick={() => { setSelectedWorkOrder(wo); }}
+            onClick={() => { setSelectedWorkOrder(wo); if (onOrdersClick) onOrdersClick(); }}
             className={`bg-white rounded-xl shadow p-3 cursor-pointer hover:shadow-lg transition ${selectedWorkOrder?.id === wo.id ? "ring-2 ring-green-100" : ""}`}
           >
             <div className="w-full h-36 overflow-hidden rounded-md mb-3">

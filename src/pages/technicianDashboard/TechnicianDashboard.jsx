@@ -41,6 +41,7 @@ export default function TechnicianDashboard() {
 
   // --- state
   const [orders, setOrders] = useState(initialOrders);
+  const [allOrders, setAllOrders] = useState([]);
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null, order: null });
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const listEndpoint = `${API_URL}/work-orders?status=pending`;
@@ -49,6 +50,7 @@ export default function TechnicianDashboard() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [notifications, setNotifications] = useState(initialNotifications);
@@ -83,7 +85,7 @@ const statusMeta = {
   // Normalize various status formats to our keys and provide safe meta
   const normalizeStatusKey = (s) => {
     const k = String(s || '').toLowerCase().trim();
-    if (k === 'in-progress' || k === 'in progress') return 'in_progress';
+    if (k === 'in-progress' || k === 'in progress' || k === 'in process') return 'in_progress';
     return k;
   };
   const defaultStatusMeta = { label: 'Unknown', color: 'bg-gray-100 text-gray-800', dot: '#9CA3AF' };
@@ -121,8 +123,22 @@ const statusMeta = {
     }
   };
 
+  const fetchAllOrders = async () => {
+    try {
+      const res = await fetch(`${API_URL}/work-orders`);
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to load all');
+      const all = Array.isArray(data.orders) ? data.orders : [];
+      setAllOrders(all);
+    } catch (e) {
+      console.error('All orders fetch failed:', e);
+      setAllOrders([]);
+    }
+  };
+
   useEffect(() => {
     fetchPendingOrders();
+    fetchAllOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -138,7 +154,9 @@ const statusMeta = {
     const { type, order } = confirmModal;
     if (!type || !order) return closeConfirm();
     try {
-      const newStatus = type === 'accept' ? 'in_progress' : 'requested';
+      let newStatus = 'requested';
+      if (type === 'accept') newStatus = 'in_progress';
+      if (type === 'finish') newStatus = 'completed';
       const technicianEmail = user?.email || localStorage.getItem('userEmail') || '';
       const res = await fetch(statusEndpoint(order.id), {
         method: 'PUT',
@@ -148,7 +166,12 @@ const statusMeta = {
       const data = await res.json();
       if (!res.ok || !data?.success) throw new Error(data?.error || 'Status update failed');
       await fetchPendingOrders();
-      showToast(type === 'accept' ? 'Work order accepted successfully!' : 'Work order declined');
+      await fetchAllOrders();
+      if (type === 'accept') showToast('Work order accepted successfully!');
+      if (type === 'finish') {
+        showToast('Work order marked as completed');
+        setSelectedOrder((s) => (s && s.id === order.id ? { ...s, status: 'completed' } : s));
+      }
       closeConfirm();
     } catch (e) {
       console.error('Confirm action failed:', e);
@@ -157,14 +180,79 @@ const statusMeta = {
     }
   };
 
-  const openDetails = (order) => {
-    setSelectedOrder(order);
-    setIsDetailsOpen(true);
+  const openDetails = async (order) => {
+    try {
+      setDetailsLoading(true);
+      const res = await fetch(`${API_URL}/work-orders/${order.id}`);
+      const data = await res.json();
+      if (res.ok && data?.success && data?.order) {
+        const o = data.order;
+        const items = Array.isArray(data.items)
+          ? data.items.map((it) => ({ desc: it.description, qty: Number(it.qty || 1), price: Number(it.unit_price || 0) }))
+          : (order.items || []);
+        const workTypes = Array.isArray(data.work_types)
+          ? data.work_types.map((wt) => wt.work_type_title || wt.work_type_id || '').filter(Boolean)
+          : (order.workTypes || []);
+        const mapped = {
+          id: o.id,
+          title: order.title || `${o.vehicle_year ? o.vehicle_year + ' ' : ''}${o.vehicle_make || ''} ${o.vehicle_model || ''}`.trim(),
+          assignedBy: o.created_by || order.assignedBy || '—',
+          customerName: o.customer_name || order.customerName || '—',
+          phone: o.customer_phone || order.phone || '—',
+          vehicle: `${o.vehicle_make || ''} ${o.vehicle_model || ''}`.trim() || order.vehicle || '—',
+          vin: o.vehicle_vin || order.vin || '—',
+          modelYear: o.vehicle_year || order.modelYear || '—',
+          odometer: o.vehicle_odometer || order.odometer || '—',
+          trim: o.vehicle_trim || order.trim || '—',
+          status: o.status || order.status,
+          accepted_by: o.accepted_by || order.accepted_by || null,
+          created_at: o.created_at || null,
+          updated_at: o.updated_at || null,
+          date: o.updated_at || o.created_at || order.date || '—',
+          activityType: o.activity_type || '—',
+          notes: o.activity_description || order.notes || '',
+          items,
+          workTypes,
+          quote_subtotal: Number(o.quote_subtotal || 0),
+          quote_tax: Number(o.quote_tax || 0),
+          quote_total: Number(o.quote_total || 0),
+          photos: Array.isArray(data.photos) ? data.photos : [],
+        };
+        setSelectedOrder(mapped);
+      } else {
+        setSelectedOrder(order);
+      }
+    } catch (e) {
+      console.error('Failed to load work order details:', e);
+      setSelectedOrder(order);
+    } finally {
+      setIsDetailsOpen(true);
+      setDetailsLoading(false);
+    }
   };
 
   const closeDetails = () => {
     setSelectedOrder(null);
     setIsDetailsOpen(false);
+  };
+
+  const updateOrderStatus = async (orderId, status) => {
+    try {
+      const technicianEmail = (user?.email || localStorage.getItem('userEmail') || '');
+      const res = await fetch(statusEndpoint(orderId), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, accepted_by: technicianEmail })
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Status update failed');
+      await fetchPendingOrders();
+      await fetchAllOrders();
+      showToast('Status updated');
+    } catch (e) {
+      console.error('Status update failed:', e);
+      showToast('Status update failed');
+    }
   };
 
   const filteredOrders = orders.filter((o) => {
@@ -177,11 +265,31 @@ const statusMeta = {
     return matchesQuery && matchesStatus;
   });
 
+  const techEmail = (user?.email || localStorage.getItem('userEmail') || '').toLowerCase().trim();
   const counts = {
-    new: orders.length,
-    in_progress: orders.filter((o) => o.status === "in_progress").length,
-    finished: orders.filter((o) => o.status === "finished").length,
+    new: allOrders.filter((o) => normalizeStatusKey(o.status) === 'pending').length,
+    in_progress: allOrders.filter((o) => normalizeStatusKey(o.status) === 'in_progress' && String(o.accepted_by || '').toLowerCase() === techEmail).length,
+    finished: allOrders.filter((o) => normalizeStatusKey(o.status) === 'completed' && String(o.accepted_by || '').toLowerCase() === techEmail).length,
   };
+
+  const workListByTab = (() => {
+    const matchesQuery = (o) => (
+      !query ||
+      String(o.title || '').toLowerCase().includes(query.toLowerCase()) ||
+      String(o.customerName || '').toLowerCase().includes(query.toLowerCase()) ||
+      String(o.vin || '').toLowerCase().includes(query.toLowerCase())
+    );
+    const isMine = (o) => String(o.accepted_by || '').toLowerCase().trim() === techEmail;
+    const statusKey = (o) => normalizeStatusKey(o.status);
+    if (filterStatus === 'in_progress') {
+      return allOrders.filter((o) => statusKey(o) === 'in_progress' && isMine(o) && matchesQuery(o));
+    }
+    if (filterStatus === 'finished') {
+      return allOrders.filter((o) => statusKey(o) === 'completed' && isMine(o) && matchesQuery(o));
+    }
+    // 'all' tab defaults to completed work history accepted by this technician
+    return allOrders.filter((o) => statusKey(o) === 'completed' && isMine(o) && matchesQuery(o));
+  })();
 
   // --- Create Work Order Wizard handlers
   const resetWizard = () => {
@@ -599,40 +707,50 @@ const statusMeta = {
             {/* Work History */}
             <div className="bg-white p-4 rounded-md shadow-card">
               <div className="flex items-center justify-between">
-                <h3 className="text-md font-semibold">Work History</h3>
-                <div className="text-sm text-gray-500">See all completed work</div>
+                <h3 className="text-md font-semibold">{filterStatus === 'in_progress' ? 'In Progress' : (filterStatus === 'finished' ? 'Finished' : 'Work History')}</h3>
+                <div className="text-sm text-gray-500">
+                  {filterStatus === 'in_progress' && 'Accepted jobs you are working on'}
+                  {filterStatus === 'finished' && 'Completed jobs accepted by you'}
+                  {filterStatus === 'all' && 'Completed work accepted by you'}
+                </div>
               </div>
               <div className="mt-3">
-                <table className="w-full text-sm">
-                  <thead className="text-xs text-gray-500">
-                    <tr>
-                      <th className="text-left py-2">#</th>
-                      <th className="text-left py-2">Customer</th>
-                      <th className="text-left py-2">Vehicle</th>
-                      <th className="text-left py-2">Date</th>
-                      <th className="text-left py-2">Status</th>
-                      <th className="text-left py-2">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm">
-                    {orders
-                      .filter((o) => o.status === "finished")
-                      .map((o) => (
+                {workListByTab.length === 0 ? (
+                  <div className="p-6 text-sm text-gray-500">
+                    {filterStatus === 'in_progress' ? 'You have not accepted any work yet.' : 'You have not completed any work yet.'}
+                  </div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="text-xs text-gray-500">
+                      <tr>
+                        <th className="text-left py-2">#</th>
+                        <th className="text-left py-2">Customer</th>
+                        <th className="text-left py-2">Title / Vehicle</th>
+                        <th className="text-left py-2">Date</th>
+                        <th className="text-left py-2">Status</th>
+                        <th className="text-left py-2">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {workListByTab.map((o) => (
                         <tr key={o.id} className="border-t">
                           <td className="py-3">{o.id}</td>
-                          <td className="py-3">{o.customerName}</td>
-                          <td className="py-3">{o.vehicle}</td>
-                          <td className="py-3">{o.date}</td>
+                          <td className="py-3">{o.customerName || o.customer_name || '—'}</td>
+                          <td className="py-3">
+                            {o.title || `${o.vehicle_make || ''} ${o.vehicle_model || ''}`.trim() || 'Work Order'}
+                          </td>
+                          <td className="py-3">{(o.updatedAt || o.updated_at || o.created_at) ? new Date(o.updatedAt || o.updated_at || o.created_at).toLocaleDateString() : '—'}</td>
                           <td className="py-3">
                             <span className={`px-2 py-1 rounded-full text-xs ${getStatusMeta(o.status).color}`}>{getStatusMeta(o.status).label}</span>
                           </td>
                           <td className="py-3">
-                            <button onClick={() => openDetails(o)} className="text-sm text-[var(--primary)] hover:underline cursor-pointer">View</button>
+                            <button onClick={() => openDetails(o)} className="text-sm text-[var(--primary)] hover:underline cursor-pointer">Details</button>
                           </td>
                         </tr>
                       ))}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
           </section>
@@ -643,11 +761,11 @@ const statusMeta = {
       {isDetailsOpen && selectedOrder && (
         <div className="fixed inset-0 z-50 grid place-items-center">
           <div className="absolute inset-0 bg-black opacity-30" onClick={closeDetails}></div>
-          <div className="relative bg-white w-11/12 md:w-3/4 lg:w-2/3 rounded-md shadow-modal p-6 z-50">
+          <div className="relative bg-white w-11/12 md:w-3/4 lg:w-2/3 rounded-md shadow-modal p-6 z-50 max-h-[90vh] overflow-auto">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-xl font-semibold">{selectedOrder.title} • {selectedOrder.id}</h3>
-                <div className="text-sm text-gray-500">{selectedOrder.customerName} • {selectedOrder.vehicle} • {selectedOrder.vin}</div>
+                <div className="text-sm text-gray-500">{selectedOrder.customerName} • {selectedOrder.vehicle} • VIN: {selectedOrder.vin}</div>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => downloadInvoice(selectedOrder)} className="text-sm bg-green-600 text-white px-3 py-1 rounded cursor-pointer">Download Invoice</button>
@@ -660,11 +778,20 @@ const statusMeta = {
                 <div className="text-xs text-gray-500">Assigned by</div>
                 <div className="font-medium">{selectedOrder.assignedBy}</div>
 
+                <div className="mt-3 text-xs text-gray-500">Accepted By</div>
+                <div className="font-medium">{selectedOrder.accepted_by || '—'}</div>
+
                 <div className="mt-3 text-xs text-gray-500">Phone</div>
                 <div>{selectedOrder.phone}</div>
 
                 <div className="mt-3 text-xs text-gray-500">Model Year</div>
                 <div>{selectedOrder.modelYear}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Odometer</div>
+                <div>{selectedOrder.odometer}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Trim</div>
+                <div>{selectedOrder.trim}</div>
 
                 <div className="mt-3 text-xs text-gray-500">Repair Type</div>
                 <div>{selectedOrder.repairType}</div>
@@ -680,7 +807,10 @@ const statusMeta = {
                 <div>{selectedOrder.date}</div>
 
                 <div className="mt-3 text-xs text-gray-500">Notes</div>
-                <div className="text-sm">{selectedOrder.notes}</div>
+                <div className="text-sm whitespace-pre-line">{selectedOrder.notes}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Quote</div>
+                <div className="text-sm">Subtotal: ${Number(selectedOrder.quote_subtotal || 0).toFixed(2)} • Tax: ${Number(selectedOrder.quote_tax || 0).toFixed(2)} • Total: ${Number(selectedOrder.quote_total || 0).toFixed(2)}</div>
               </div>
             </div>
 
@@ -711,14 +841,10 @@ const statusMeta = {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2">
-              {selectedOrder.status !== "finished" && (
+              <div className="mt-4 flex items-center gap-2">
+              {selectedOrder.status !== "finished" && normalizeStatusKey(selectedOrder.status) !== 'completed' && (
                 <button
-                  onClick={() => {
-                    saveOrderEdits({ status: "finished" });
-                    setOrders((prev) => prev.map((o) => (o.id === selectedOrder.id ? { ...o, status: "finished" } : o)));
-                    showToast("Marked as finished");
-                  }}
+                  onClick={() => setConfirmModal({ open: true, type: 'finish', order: selectedOrder })}
                   className="bg-[var(--success)] px-3 py-1 text-white rounded cursor-pointer"
                 >
                   Mark Finished
@@ -735,16 +861,29 @@ const statusMeta = {
       {confirmModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white rounded-lg w-full max-w-md p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-100 text-green-600">✔</div>
-              <h3 className="text-lg font-semibold text-black">Accept Work Order</h3>
-            </div>
-            <p className="text-sm text-gray-700 mb-6">
-              Accepting will move this work to In Progress.
-            </p>
+            {confirmModal.type === 'accept' && (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-green-100 text-green-600">✔</div>
+                  <h3 className="text-lg font-semibold text-black">Accept Work Order</h3>
+                </div>
+                <p className="text-sm text-gray-700 mb-6">Accepting will move this work to In Progress.</p>
+              </>
+            )}
+            {confirmModal.type === 'finish' && (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-full bg-yellow-100 text-yellow-700">⚠</div>
+                  <h3 className="text-lg font-semibold text-black">Confirm Completion</h3>
+                </div>
+                <p className="text-sm text-gray-700 mb-6">Have you completed this work order? This action cannot be undone.</p>
+              </>
+            )}
             <div className="flex justify-end gap-3">
               <button onClick={closeConfirm} className="px-4 py-2 border rounded-md hover:bg-gray-50 cursor-pointer">Cancel</button>
-              <button onClick={performConfirm} className="px-4 py-2 rounded-md text-white cursor-pointer bg-[var(--primary)] hover:brightness-95">Accept</button>
+              <button onClick={performConfirm} className="px-4 py-2 rounded-md text-white cursor-pointer bg-[var(--primary)] hover:brightness-95">
+                {confirmModal.type === 'accept' ? 'Accept' : 'Confirm'}
+              </button>
             </div>
           </div>
         </div>

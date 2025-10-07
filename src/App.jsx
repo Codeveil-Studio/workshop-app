@@ -9,6 +9,7 @@ import Signup from './pages/signup.jsx'
 import AdminDashboard from './pages/adminDashboard/AdminDashboard.jsx'
 import TechnicianDashboard from './pages/technicianDashboard/TechnicianDashboard.jsx'
 import ContractorDashboard from './pages/contractorDashboard.jsx'
+import SupplierDashboard from './pages/supplierDashboard/SupplierDashboard.jsx'
 import Logs from './pages/Logs.jsx'
 import Reports from './pages/Reports.jsx'
 import UserManagement from './pages/adminDashboard/users/UserManagement'
@@ -26,6 +27,7 @@ function App() {
         <Route path="/admindashboard" element={<AdminDashboard />} />
         <Route path="/techniciandashboard" element={<TechnicianDashboard />} />
         <Route path="/contractordashboard" element={<ContractorDashboard />} />
+        <Route path="/supplierdashboard" element={<SupplierDashboard />} />
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/logs" element={<Logs />} />
         <Route path="/reports" element={<Reports />} />

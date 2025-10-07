@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Search, Filter, Download, Edit, Trash2 } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
 
-export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, setSelectedWorkOrder }) {
+export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, setSelectedWorkOrder, userEmail }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -85,6 +85,161 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
     URL.revokeObjectURL(url);
   };
 
+  const yours = filteredOrders.filter(o => (o.created_by || '').toLowerCase() === (userEmail || '').toLowerCase());
+  const others = filteredOrders.filter(o => (o.created_by || '').toLowerCase() !== (userEmail || '').toLowerCase());
+
+  // Helpers for status logic
+  const normalizeStatus = (s) => {
+    const str = String(s || '').toLowerCase().trim();
+    if (str === 'in progress' || str === 'in-progress' || str === 'in_progress' || str === 'accepted') return 'in_progress';
+    if (str === 'open') return 'open';
+    if (str === 'completed') return 'completed';
+    if (str === 'cancelled' || str === 'canceled') return 'cancelled';
+    if (str === 'requested') return 'requested';
+    if (str === 'pending') return 'pending';
+    return str || 'requested';
+  };
+  const isEditableStatus = (order) => normalizeStatus(order.status) === 'in_progress';
+  const getStatusClass = (status) => {
+    const s = normalizeStatus(status);
+    if (s === 'open' || s === 'requested') return 'bg-blue-100 text-blue-800';
+    if (s === 'in_progress') return 'bg-yellow-100 text-yellow-800';
+    if (s === 'completed') return 'bg-green-100 text-green-800';
+    if (s === 'cancelled') return 'bg-red-100 text-red-800';
+    if (s === 'pending') return 'bg-gray-100 text-gray-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  // Details panel state
+  const [details, setDetails] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState('');
+
+  const viewDetails = async (order) => {
+    try {
+      setSelectedWorkOrder(order);
+      setDetailsLoading(true);
+      setDetailsError('');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const base = (API_URL || '').replace(/\/+$/, '');
+      const path = /\/api\/?$/.test(base) ? `${base}/work-orders/${order.id}` : `${base}/api/work-orders/${order.id}`;
+      const res = await fetch(path);
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : null;
+      if (!res.ok || !data?.success) {
+        setDetailsError(data?.error || res.statusText);
+        setDetails(null);
+      } else {
+        setDetails(data);
+      }
+    } catch (e) {
+      setDetailsError(e.message);
+      setDetails(null);
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const renderTable = (orders, emptyLabel, allowStatusChange) => (
+    <div className="overflow-x-auto mb-8">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-gray-200">
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">Order ID</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">Customer</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">Vehicle</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">Total</th>
+            <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => {
+            const totalItemsAmount = Array.isArray(order.items) && order.items.length > 0
+              ? order.items.reduce((sum, item) => sum + (item.qty * item.price), 0)
+              : null;
+            const total = totalItemsAmount !== null ? totalItemsAmount : Number(order.total || 0);
+            const isSelected = selectedWorkOrder?.id === order.id;
+
+            return (
+              <tr 
+                key={order.id} 
+                className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-green-50 border-green-200' : ''}`}
+                onClick={() => setSelectedWorkOrder(order)}
+              >
+                <td className="py-4 px-4 font-medium">#{order.id}</td>
+                <td className="py-4 px-4">
+                  <div>
+                    <div className="font-medium">{order.customerName}</div>
+                    <div className="text-sm text-gray-500">{order.phone}</div>
+                  </div>
+                </td>
+                <td className="py-4 px-4">
+                  <div>
+                    <div className="font-medium">{order.make} {order.model}</div>
+                    <div className="text-sm text-gray-500">{order.year}</div>
+                  </div>
+                </td>
+                <td className="py-4 px-4 text-sm text-gray-600">{order.date}</td>
+                <td className="py-4 px-4">
+                  {allowStatusChange && isEditableStatus(order) ? (
+                    <select
+                      value={order.status}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(order.id, e.target.value);
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 focus:ring-2 focus:ring-green-500 ${getStatusClass(order.status)}`}
+                    >
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  ) : (
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(order.status)}`}>
+                      {order.status}
+                    </span>
+                  )}
+                </td>
+                <td className="py-4 px-4 font-medium">${total.toFixed(2)}</td>
+                <td className="py-4 px-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadInvoice(order);
+                      }}
+                      className="p-1 text-gray-500 hover:text-green-600 transition-colors cursor-pointer"
+                      title="Download Invoice"
+                    >
+                      <Download size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        viewDetails(order);
+                      }}
+                      className="px-2 py-1 text-sm rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                      title="View Details"
+                    >
+                      Details
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {orders.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <div className="text-lg font-medium mb-2">{emptyLabel}</div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="bg-white p-6 rounded-xl shadow">
       <div className="flex items-center justify-between mb-6">
@@ -124,113 +279,116 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Order ID</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Customer</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Vehicle</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Total</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredOrders.map((order) => {
-              const total = order.items.reduce((sum, item) => sum + (item.qty * item.price), 0);
-              const isSelected = selectedWorkOrder?.id === order.id;
-              
-              return (
-                <tr 
-                  key={order.id} 
-                  className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-green-50 border-green-200' : ''}`}
-                  onClick={() => setSelectedWorkOrder(order)}
-                >
-                  <td className="py-4 px-4 font-medium">#{order.id}</td>
-                  <td className="py-4 px-4">
-                    <div>
-                      <div className="font-medium">{order.customerName}</div>
-                      <div className="text-sm text-gray-500">{order.phone}</div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div>
-                      <div className="font-medium">{order.make} {order.model}</div>
-                      <div className="text-sm text-gray-500">{order.year}</div>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600">{order.date}</td>
-                  <td className="py-4 px-4">
-                    <select
-                      value={order.status}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleStatusChange(order.id, e.target.value);
-                      }}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 focus:ring-2 focus:ring-green-500 ${
-                        order.status === 'Open' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                        order.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      <option value="Open">Open</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  </td>
-                  <td className="py-4 px-4 font-medium">${total.toFixed(2)}</td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadInvoice(order);
-                        }}
-                        className="p-1 text-gray-500 hover:text-green-600 transition-colors cursor-pointer"
-                        title="Download Invoice"
-                      >
-                        <Download size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedWorkOrder(order);
-                        }}
-                        className="p-1 text-gray-500 hover:text-blue-600 transition-colors cursor-pointer"
-                        title="View Details"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteOrder(order.id);
-                        }}
-                        className="p-1 text-gray-500 hover:text-red-600 transition-colors cursor-pointer"
-                        title="Delete Order"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        
-        {filteredOrders.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            <div className="text-lg font-medium mb-2">No work orders found</div>
-            <div className="text-sm">Try adjusting your search or filter criteria</div>
+      {/* Created by You */}
+      <h4 className="text-md font-semibold mb-3">Created by You</h4>
+      {renderTable(yours, 'No work orders created by you', true)}
+
+      {/* Created by Other Contractors */}
+      <h4 className="text-md font-semibold mb-3">Created by Other Contractors</h4>
+      {renderTable(others, 'No work orders created by other contractors', false)}
+
+      {workOrders.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <div className="text-lg font-medium mb-2">No work orders created yet</div>
+        </div>
+      )}
+      {(selectedWorkOrder || details) && (
+        <div className="mt-8 border rounded-lg p-4 bg-gray-50">
+          <div className="flex justify-between items-center mb-4">
+            <h5 className="text-md font-semibold">Work Order Details</h5>
+            {detailsLoading && <span className="text-sm text-gray-500">Loading details...</span>}
+            {detailsError && <span className="text-sm text-red-600">{detailsError}</span>}
           </div>
-        )}
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-sm text-gray-500">Order ID</div>
+              <div className="font-medium">#{(selectedWorkOrder || {}).id}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Status</div>
+              <div className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusClass((selectedWorkOrder || {}).status)}`}>
+                {(selectedWorkOrder || {}).status}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Created By</div>
+              <div className="font-medium">{(selectedWorkOrder || {}).created_by || '—'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Accepted By</div>
+              <div className="font-medium">{details?.order?.accepted_by || 'Not accepted'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Customer</div>
+              <div className="font-medium">{(selectedWorkOrder || {}).customerName} {(selectedWorkOrder || {}).phone ? `(${(selectedWorkOrder || {}).phone})` : ''}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Vehicle</div>
+              <div className="font-medium">{(selectedWorkOrder || {}).year} {(selectedWorkOrder || {}).make} {(selectedWorkOrder || {}).model}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">VIN</div>
+              <div className="font-medium">{(selectedWorkOrder || {}).vin || '—'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Date</div>
+              <div className="font-medium">{(selectedWorkOrder || {}).date || '—'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Total</div>
+              <div className="font-medium">${(selectedWorkOrder || {}).total ? Number((selectedWorkOrder || {}).total).toFixed(2) : '0.00'}</div>
+            </div>
+          </div>
+
+          {Array.isArray(details?.items) && details.items.length > 0 && (
+            <div className="mt-6">
+              <div className="text-sm font-semibold mb-2">Items</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-2 px-3">Title</th>
+                      <th className="text-left py-2 px-3">Qty</th>
+                      <th className="text-left py-2 px-3">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {details.items.map((it, idx) => (
+                      <tr key={idx} className="border-b border-gray-100">
+                        <td className="py-2 px-3">{it.title || it.name || it.description || 'Item'}</td>
+                        <td className="py-2 px-3">{it.qty}</td>
+                        <td className="py-2 px-3">${Number(it.price || 0).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(details?.work_types) && details.work_types.length > 0 && (
+            <div className="mt-6">
+              <div className="text-sm font-semibold mb-2">Work Types</div>
+              <div className="flex flex-wrap gap-2">
+                {details.work_types.map((wt, idx) => (
+                  <span key={idx} className="px-3 py-1 rounded-full bg-gray-200 text-gray-700 text-xs">{wt.type || wt.name || 'Type'}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(details?.photos) && details.photos.length > 0 && (
+            <div className="mt-6">
+              <div className="text-sm font-semibold mb-2">Photos</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {details.photos.map((ph, idx) => (
+                  <img key={idx} src={ph.url || ph.image_url || ph.path} alt="photo" className="w-full h-24 object-cover rounded" />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

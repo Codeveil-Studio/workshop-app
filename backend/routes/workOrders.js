@@ -153,7 +153,7 @@ router.post('/', async (req, res) => {
 // Fetch work orders, optionally filtered by status
 router.get('/', async (req, res) => {
   const { status } = req.query;
-  let sql = `SELECT id, customer_name, vehicle_make, vehicle_model, vehicle_year, status, quote_total, updated_at, created_at FROM work_orders`;
+  let sql = `SELECT id, created_by, accepted_by, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at FROM work_orders`;
   const params = [];
   if (status) {
     sql += ` WHERE LOWER(TRIM(status)) = ?`;
@@ -178,14 +178,27 @@ router.get('/', async (req, res) => {
         'pending': 'Pending',
         'accepted': 'In Process',
       };
-      const displayStatus = statusMap[(r.status || '').toLowerCase()] || r.status || 'Requested';
+      const rawStatus = (r.status || '').toLowerCase();
+      const displayStatus = statusMap[rawStatus] || r.status || 'Requested';
 
       return {
         id: r.id,
         title,
         charges: Number(r.quote_total || 0),
         status: displayStatus,
+        status_raw: rawStatus,
         updatedAt: r.updated_at || r.created_at || new Date(),
+        // Additional fields for contractor dashboard rendering
+        created_by: r.created_by || null,
+        accepted_by: r.accepted_by || null,
+        customer_name: r.customer_name || null,
+        customer_phone: r.customer_phone || null,
+        vehicle_make: r.vehicle_make || null,
+        vehicle_model: r.vehicle_model || null,
+        vehicle_year: r.vehicle_year || null,
+        vehicle_vin: r.vehicle_vin || null,
+        created_at: r.created_at || null,
+        quote_total: Number(r.quote_total || 0),
       };
     });
 

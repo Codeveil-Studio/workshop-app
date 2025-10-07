@@ -54,6 +54,11 @@ export default function Login() {
         navigate('/techniciandashboard');
         return;
       }
+      if (role === 'supplier') {
+        navigate('/supplierdashboard');
+        return;
+      }
+
       alert('Login successful');
     } catch (err) {
       setError(err.message);
