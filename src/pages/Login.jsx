@@ -58,6 +58,10 @@ export default function Login() {
         navigate('/supplierdashboard');
         return;
       }
+       if (role === 'consultant') {
+        navigate('/consultantdashboard');
+        return;
+      }
 
       alert('Login successful');
     } catch (err) {

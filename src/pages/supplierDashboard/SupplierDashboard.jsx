@@ -35,55 +35,50 @@ export default function SupplierDashboard() {
     }
   }, []);
 
-  // ---------- Sample data (based on PDF snippets) ----------
-  const [orders, setOrders] = useState([
-    {
-      id: "W01",
-      title: "Car Engine Repair",
-      contractor: "AutoFix Ltd",
-      startDate: "2023-03-01",
-      completionDate: null,
-      status: "In Progress",
-      totalCost: 199,
-      details: "Replace piston rings, tune engine, test drive.",
-      services: [
-        { id: "S03", name: "Engine Repair", price: 199 },
-      ],
-    },
-    {
-      id: "W02",
-      title: "Car Washing",
-      contractor: "Sparkle Wash",
-      startDate: "2023-07-03",
-      completionDate: "2023-07-03",
-      status: "Finished",
-      totalCost: 29,
-      details: "Exterior wash, vacuum, window polish.",
-      services: [{ id: "S01", name: "Car Washing", price: 29 }],
-    },
-    {
-      id: "W03",
-      title: "Steering Repair",
-      contractor: "SteerRight",
-      startDate: "2023-07-03",
-      completionDate: "2023-07-03",
-      status: "Contractor",
-      totalCost: 45,
-      details: "Tie rod replacement, alignment check.",
-      services: [{ id: "S02", name: "Steering Repair", price: 45 }],
-    },
-    {
-      id: "W04",
-      title: "Tire Replacement",
-      contractor: "WheelHouse",
-      startDate: "2023-09-01",
-      completionDate: null,
-      status: "Sent",
-      totalCost: 179,
-      details: "Replace two tires, balance & alignment.",
-      services: [{ id: "S06", name: "Tire", price: 179 }],
-    },
-  ]);
+  // ---------- Dynamic work orders ----------
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
+
+  useEffect(() => {
+    async function fetchWorkOrders() {
+      try {
+        setOrdersLoading(true);
+        setOrdersError("");
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const base = (API_URL || '').replace(/\/+$/,'');
+        const path = /\/api\/?$/.test(base) ? `${base}/work-orders` : `${base}/api/work-orders`;
+        const res = await fetch(path);
+        const contentType = res.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const data = isJson ? await res.json() : null;
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || res.statusText);
+        }
+        const mapped = (data.orders || []).map((o) => ({
+          id: o.id,
+          title: o.title || `${o.vehicle_year ? o.vehicle_year + ' ' : ''}${o.vehicle_make || ''} ${o.vehicle_model || ''}`.trim(),
+          contractor: o.created_by || '—',
+          status: normalizeStatusLabel(o.status || o.status_raw || 'pending'),
+          totalCost: Number(o.quote_total || o.charges || 0),
+          details: `${o.customer_name || ''} ${o.customer_phone ? '(' + o.customer_phone + ')' : ''}`.trim(),
+          services: [],
+          supply_item: o.supply_item || null,
+          item_description: o.item_description || null,
+          supplier_email: o.supplier_email || null,
+          startDate: (() => { try { const d = o.updatedAt || o.created_at; return d ? new Date(d).toISOString().split('T')[0] : ''; } catch { return ''; } })(),
+        }));
+        setOrders(mapped);
+      } catch (e) {
+        console.error('Failed to load work orders', e);
+        setOrdersError(e.message || 'Failed to load work orders');
+        setOrders([]);
+      } finally {
+        setOrdersLoading(false);
+      }
+    }
+    fetchWorkOrders();
+  }, []);
 
   const [services, setServices] = useState([
     { id: "S01", name: "Car Washing", price: 29 },
@@ -137,9 +132,70 @@ export default function SupplierDashboard() {
   const [activeStatusChanger, setActiveStatusChanger] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState({});
 
-  // User state
-  const [user, setUser] = useState({ name: "Supplier Name", email: "supplier@example.com" });
-  const [userLoading, setUserLoading] = useState(false);
+  // Approve confirmation modal
+  const [approveModal, setApproveModal] = useState({ open: false, order: null, loading: false, error: '' });
+  const openApproveModal = (order) => setApproveModal({ open: true, order, loading: false, error: '' });
+  const closeApproveModal = () => setApproveModal({ open: false, order: null, loading: false, error: '' });
+  const performApprove = async () => {
+    const order = approveModal.order;
+    if (!order) return closeApproveModal();
+    try {
+      setApproveModal((s) => ({ ...s, loading: true, error: '' }));
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const base = (API_URL || '').replace(/\/+$/,'');
+      const path = /\/api\/?$/.test(base) ? `${base}/work-orders/${order.id}/approve` : `${base}/api/work-orders/${order.id}/approve`;
+      const supplierEmail = (user?.email || localStorage.getItem('userEmail') || '').trim();
+      const res = await fetch(path, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supplier_email: supplierEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || res.statusText);
+      // Update local orders list to reflect acceptance
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: 'In Progress', supplier_email: supplierEmail } : o)));
+      closeApproveModal();
+    } catch (e) {
+      setApproveModal((s) => ({ ...s, loading: false, error: e.message || 'Approval failed' }));
+    }
+  };
+
+  // User state (dynamic from backend by email in localStorage)
+  const [user, setUser] = useState({ name: "Loading...", email: "" });
+  const [userLoading, setUserLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  // Load user from localStorage and fetch profile
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          console.error('No user email found in localStorage');
+          setUser({ name: 'Guest User', email: '' });
+          setUserLoading(false);
+          return;
+        }
+
+        const response = await fetch(`/api/auth/user/${encodeURIComponent(userEmail)}`);
+        const data = await response.json();
+
+        if (data.success && data.user) {
+          setUser({ name: data.user.name, email: data.user.email });
+        } else {
+          console.error('Failed to fetch user data:', data.error);
+          setUser({ name: 'Guest User', email: userEmail });
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setUser({ name: 'Guest User', email: '' });
+      } finally {
+        setUserLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const STATUS_COLORS = {
     "Sent": "bg-gray-200 text-gray-800",
@@ -161,21 +217,25 @@ export default function SupplierDashboard() {
   const filteredOrders = useMemo(() => {
     const q = search.trim().toLowerCase();
     return orders.filter((o) => {
+      const hasSupplier = !!(o.supply_item && String(o.supply_item).trim() !== '');
+      if (!hasSupplier) return false;
       const tabOk = selectedTab === "All" ? true : o.status === selectedTab;
       const searchOk =
         !q ||
-        o.title.toLowerCase().includes(q) ||
-        o.id.toLowerCase().includes(q) ||
-        o.contractor.toLowerCase().includes(q);
+        String(o.title || '').toLowerCase().includes(q) ||
+        String(o.id || '').toLowerCase().includes(q) ||
+        String(o.contractor || '').toLowerCase().includes(q);
       return tabOk && searchOk;
     });
   }, [orders, search, selectedTab]);
 
   const stats = useMemo(() => {
-    const total = orders.length;
-    const inProgress = orders.filter((o) => o.status === "In Progress").length;
-    const finished = orders.filter((o) => o.status === "Finished").length;
-    const approved = orders.filter((o) => o.status === "Approved").length;
+    const hasSupplier = (o) => !!(o.supply_item && String(o.supply_item).trim() !== '');
+    const base = orders.filter(hasSupplier);
+    const total = base.length; // reflects 'All' tab items
+    const inProgress = base.filter((o) => o.status === "In Progress").length;
+    const finished = base.filter((o) => o.status === "Finished").length;
+    const approved = base.filter((o) => !!o.supplier_email).length; // approved by supplier
     return { total, inProgress, finished, approved };
   }, [orders]);
 
@@ -193,6 +253,15 @@ export default function SupplierDashboard() {
         return o;
       });
     });
+  }
+
+  // Normalize backend/display status labels to dashboard tabs
+  function normalizeStatusLabel(s) {
+    const key = String(s || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    if (key === 'pending' || key === 'requested') return 'Sent';
+    if (key === 'in progress' || key === 'in-process' || key === 'in process' || key === 'accepted') return 'In Progress';
+    if (key === 'completed' || key === 'finished') return 'Finished';
+    return s || 'Sent';
   }
 
   function openModifyPrice(service) {
@@ -244,9 +313,18 @@ export default function SupplierDashboard() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
+  // Logout flows (match Technician/Consultant dashboards)
   function handleLogout() {
-    console.log("Logging out...");
-    // Add logout logic here
+    setShowLogoutModal(true);
+  }
+  function confirmLogout() {
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+    setShowLogoutModal(false);
+    window.location.href = '/loginselection';
+  }
+  function cancelLogout() {
+    setShowLogoutModal(false);
   }
 
   function addService(name, price) {
@@ -386,8 +464,15 @@ export default function SupplierDashboard() {
             </label>
           </div>
         </div>
-
         <div className="flex items-center space-x-3">
+          {/* Logout button (red), placed between search bar and notification icon */}
+          <button
+            onClick={handleLogout}
+            className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
+            title="Logout"
+          >
+            Logout
+          </button>
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setNotifOpen((v) => !v)}
@@ -642,24 +727,45 @@ export default function SupplierDashboard() {
                               <div className="mt-3 flex items-center gap-3">
                                   <button
                                       onClick={() => setExpandedOrderId((prev) => (prev === o.id ? null : o.id))}
-                                      className="text-xs text-blue-600"
+                                      className="text-xs text-blue-600 cursor-pointer"
                                   >
                                       {expandedOrderId === o.id ? "Hide details" : "View details"}
                                   </button>
-                                  <button
-                                      onClick={() => {
-                                          // Quick approve workflow simulation
-                                          changeOrderStatus(o.id, "Approved");
-                                      } }
-                                      className="text-xs text-gray-600"
-                                  >
+                                  {o.supplier_email ? (
+                                    <button
+                                      disabled
+                                      className="text-xs px-2 py-1 rounded-md bg-emerald-600/70 text-white cursor-not-allowed"
+                                      title={`Approved by ${o.supplier_email}`}
+                                    >
+                                      Approved
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => openApproveModal(o)}
+                                      className="text-xs cursor-pointer px-2 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-transform shadow-sm"
+                                    >
                                       Approve
-                                  </button>
+                                    </button>
+                                  )}
                               </div>
 
                               {/* Expanded details */}
                               {expandedOrderId === o.id && (
                                   <div className="mt-3 border-t pt-3 text-sm text-gray-700">
+                                      {/* Supplier assignment details */}
+                                      {o.supply_item && (
+                                        <div className="mb-3">
+                                          <div className="font-medium">Supplier Assignment</div>
+                                          <div className="text-xs text-gray-500 mt-1">Item</div>
+                                          <div className="text-sm">{o.supply_item}</div>
+                                          {o.item_description && (
+                                            <>
+                                              <div className="text-xs text-gray-500 mt-2">Description</div>
+                                              <div className="text-sm">{o.item_description}</div>
+                                            </>
+                                          )}
+                                        </div>
+                                      )}
                                       <div className="font-medium mb-2">Services</div>
                                       <ul className="space-y-2">
                                           {o.services.map((s) => {
@@ -683,6 +789,27 @@ export default function SupplierDashboard() {
             </div>
           </div>
       </main>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
+              <p className="text-sm text-gray-600 mb-6">Are you sure you want to logout? You will need to sign in again to access your dashboard.</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={cancelLogout} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer">Cancel</button>
+                <button onClick={confirmLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors cursor-pointer">Logout</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modify Price Modal */}
       {priceModalOpen && editingService && (
@@ -752,6 +879,20 @@ export default function SupplierDashboard() {
               </div>
 
               <div className="mt-4">
+                {/* Supplier assignment details in invoice */}
+                {invoiceOrder?.supply_item && (
+                  <div className="mb-4">
+                    <div className="font-medium">Supplier Assignment</div>
+                    <div className="text-xs text-gray-500 mt-1">Item</div>
+                    <div className="text-sm">{invoiceOrder.supply_item}</div>
+                    {invoiceOrder.item_description && (
+                      <>
+                        <div className="text-xs text-gray-500 mt-2">Description</div>
+                        <div className="text-sm">{invoiceOrder.item_description}</div>
+                      </>
+                    )}
+                  </div>
+                )}
                 <div className="font-medium mb-2">Services</div>
                 <div className="border border-gray-400 rounded-md">
                   {invoiceOrder.services.map((s) => {
@@ -776,6 +917,30 @@ export default function SupplierDashboard() {
                   className="px-3 py-1 rounded-md bg-[#29cc6a] text-white text-sm"
                 >
                   Print / Download
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Confirmation Modal */}
+      {approveModal.open && approveModal.order && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 mb-4">
+                <svg className="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Approval</h3>
+              <p className="text-sm text-gray-600 mb-6">Are you sure you want to confirm this work order? Your email will be recorded for the contractor.</p>
+              {approveModal.error && (<div className="text-sm text-red-600 mb-3">{approveModal.error}</div>)}
+              <div className="flex gap-3 justify-center">
+                <button onClick={closeApproveModal} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer" disabled={approveModal.loading}>Cancel</button>
+                <button onClick={performApprove} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-60" disabled={approveModal.loading}>
+                  {approveModal.loading ? 'Confirming...' : 'Confirm'}
                 </button>
               </div>
             </div>

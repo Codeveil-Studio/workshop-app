@@ -56,6 +56,7 @@ export default function TechnicianDashboard() {
   const [notifications, setNotifications] = useState(initialNotifications);
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
+  const [referModal, setReferModal] = useState({ open: false, order: null, supply_item: '', item_description: '' });
 
   // create-work-order form state
   const [newOrder, setNewOrder] = useState({
@@ -234,6 +235,37 @@ const statusMeta = {
   const closeDetails = () => {
     setSelectedOrder(null);
     setIsDetailsOpen(false);
+  };
+
+  const openReferModal = (order) => {
+    setReferModal({ open: true, order, supply_item: '', item_description: '' });
+  };
+
+  const closeReferModal = () => setReferModal({ open: false, order: null, supply_item: '', item_description: '' });
+
+  const submitReferToConsultant = async () => {
+    const { order, supply_item, item_description } = referModal;
+    if (!order || !supply_item || String(supply_item).trim() === '') {
+      showToast('Supply item is required');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/work-orders/${order.id}/refer`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supply_item: String(supply_item).trim(), item_description: String(item_description || '').trim() || null })
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to refer');
+      showToast('Sent to consultant for approval');
+      await fetchAllOrders();
+      // Update selected order temp fields locally if open
+      setSelectedOrder((s) => (s && s.id === order.id ? { ...s, temp_supply_item: String(supply_item).trim(), temp_desc: String(item_description || '').trim() || null } : s));
+      closeReferModal();
+    } catch (e) {
+      console.error('Refer failed:', e);
+      showToast('Failed to send referral');
+    }
   };
 
   const updateOrderStatus = async (orderId, status) => {
@@ -769,6 +801,9 @@ const statusMeta = {
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => downloadInvoice(selectedOrder)} className="text-sm bg-green-600 text-white px-3 py-1 rounded cursor-pointer">Download Invoice</button>
+                {normalizeStatusKey(selectedOrder.status) === 'in_progress' && (
+                  <button onClick={() => openReferModal(selectedOrder)} className="text-sm bg-[var(--primary)] text-white px-3 py-1 rounded cursor-pointer">Refer to supplier</button>
+                )}
                 <button onClick={closeDetails} className="text-sm border px-3 py-1 rounded cursor-pointer">Close</button>
               </div>
             </div>
@@ -884,6 +919,35 @@ const statusMeta = {
               <button onClick={performConfirm} className="px-4 py-2 rounded-md text-white cursor-pointer bg-[var(--primary)] hover:brightness-95">
                 {confirmModal.type === 'accept' ? 'Accept' : 'Confirm'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Refer to Supplier Modal */}
+      {referModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg w-full max-w-md p-6 shadow-modal">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-[var(--primary-light,#ecf2ff)] text-[var(--primary,#2f55d4)]">⮕</div>
+              <h3 className="text-lg font-semibold text-black">Refer to Supplier</h3>
+            </div>
+            <p className="text-sm text-gray-700 mb-4">This will be forwarded to your consultant. On approval, it will be sent to the supplier.</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-700">Supply item<span className="text-red-500">*</span></label>
+                <input value={referModal.supply_item} onChange={(e)=>setReferModal((s)=>({ ...s, supply_item: e.target.value }))} placeholder="e.g., Front bumper, AC compressor" className="mt-1 w-full p-2 border rounded"/>
+              </div>
+              <div>
+                <label className="text-sm text-gray-700">Item description (optional)</label>
+                <textarea value={referModal.item_description} onChange={(e)=>setReferModal((s)=>({ ...s, item_description: e.target.value }))} placeholder="Additional notes or description" className="mt-1 w-full p-2 border rounded"></textarea>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center gap-2">
+              <button onClick={submitReferToConsultant} className="bg-[var(--primary)] px-3 py-1 text-white rounded cursor-pointer">Send to consultant for approval</button>
+              <button onClick={closeReferModal} className="border px-3 py-1 rounded cursor-pointer">Cancel</button>
             </div>
           </div>
         </div>

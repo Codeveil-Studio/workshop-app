@@ -153,7 +153,7 @@ router.post('/', async (req, res) => {
 // Fetch work orders, optionally filtered by status
 router.get('/', async (req, res) => {
   const { status } = req.query;
-  let sql = `SELECT id, created_by, accepted_by, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at FROM work_orders`;
+  let sql = `SELECT id, created_by, accepted_by, supplier_email, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at, supply_item, item_description, temp_supply_item, temp_desc FROM work_orders`;
   const params = [];
   if (status) {
     sql += ` WHERE LOWER(TRIM(status)) = ?`;
@@ -191,6 +191,7 @@ router.get('/', async (req, res) => {
         // Additional fields for contractor dashboard rendering
         created_by: r.created_by || null,
         accepted_by: r.accepted_by || null,
+        supplier_email: r.supplier_email || null,
         customer_name: r.customer_name || null,
         customer_phone: r.customer_phone || null,
         vehicle_make: r.vehicle_make || null,
@@ -199,6 +200,12 @@ router.get('/', async (req, res) => {
         vehicle_vin: r.vehicle_vin || null,
         created_at: r.created_at || null,
         quote_total: Number(r.quote_total || 0),
+        // Supplier assignment fields
+        supply_item: r.supply_item || null,
+        item_description: r.item_description || null,
+        // Temp referral fields (for consultant approval)
+        temp_supply_item: r.temp_supply_item || null,
+        temp_desc: r.temp_desc || null,
       };
     });
 
@@ -243,6 +250,104 @@ router.put('/:id/status', async (req, res) => {
     }
 
     const [result] = await pool.query(sql, params);
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Update supplier assignment fields (supply_item, item_description)
+router.put('/:id/supplier', async (req, res) => {
+  const id = Number(req.params.id);
+  const { supply_item, item_description } = req.body || {};
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  if (!supply_item || String(supply_item).trim() === '') {
+    return res.status(400).json({ success: false, error: 'Missing supply_item' });
+  }
+  try {
+    const [result] = await pool.query(
+      `UPDATE work_orders SET supply_item = ?, item_description = ?, updated_at = NOW() WHERE id = ?`,
+      [String(supply_item).trim(), item_description ? String(item_description).trim() : null, id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Refer to consultant for supplier approval: set temp fields
+router.put('/:id/refer', async (req, res) => {
+  const id = Number(req.params.id);
+  const { supply_item, item_description } = req.body || {};
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  if (!supply_item || String(supply_item).trim() === '') {
+    return res.status(400).json({ success: false, error: 'Missing supply_item' });
+  }
+  try {
+    const [result] = await pool.query(
+      `UPDATE work_orders SET temp_supply_item = ?, temp_desc = ?, updated_at = NOW() WHERE id = ?`,
+      [String(supply_item).trim(), item_description ? String(item_description).trim() : null, id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Confirm technician referral: copy temp fields to permanent and clear temp
+router.put('/:id/refer-confirm', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  try {
+    const [rows] = await pool.query(`SELECT temp_supply_item, temp_desc FROM work_orders WHERE id = ?`, [id]);
+    if (!rows.length) return res.status(404).json({ success: false, error: 'Not found' });
+    const { temp_supply_item, temp_desc } = rows[0] || {};
+    if (!temp_supply_item) {
+      return res.status(400).json({ success: false, error: 'No referral to confirm' });
+    }
+    const [result] = await pool.query(
+      `UPDATE work_orders SET supply_item = ?, item_description = ?, temp_supply_item = NULL, temp_desc = NULL, updated_at = NOW() WHERE id = ?`,
+      [String(temp_supply_item).trim(), temp_desc ? String(temp_desc).trim() : null, id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Decline technician referral: clear temp fields
+router.put('/:id/refer-decline', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  try {
+    const [result] = await pool.query(
+      `UPDATE work_orders SET temp_supply_item = NULL, temp_desc = NULL, updated_at = NOW() WHERE id = ?`,
+      [id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Approve work order by supplier: set supplier_email and mark accepted
+router.put('/:id/approve', async (req, res) => {
+  const id = Number(req.params.id);
+  const { supplier_email } = req.body || {};
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  if (!supplier_email || String(supplier_email).trim() === '') {
+    return res.status(400).json({ success: false, error: 'Missing supplier_email' });
+  }
+  try {
+    const [result] = await pool.query(
+      `UPDATE work_orders SET supplier_email = ?, status = CASE WHEN status IN ('requested','pending') THEN 'in_progress' ELSE status END, updated_at = NOW() WHERE id = ?`,
+      [String(supplier_email).trim(), id]
+    );
     if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true });
   } catch (e) {

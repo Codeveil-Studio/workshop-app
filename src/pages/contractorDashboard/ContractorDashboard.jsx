@@ -213,6 +213,12 @@ export default function ContractorDashboard() {
           status: o.status || 'Open',
           total: typeof o.total !== 'undefined' ? Number(o.total) : (typeof o.charges !== 'undefined' ? Number(o.charges) : (typeof o.quote_total !== 'undefined' ? Number(o.quote_total) : 0)),
           created_by: o.created_by || o.createdBy || '',
+          accepted_by: o.accepted_by || '',
+          supplier_email: o.supplier_email || '',
+          supply_item: o.supply_item || null,
+          item_description: o.item_description || null,
+          temp_supply_item: o.temp_supply_item || null,
+          temp_desc: o.temp_desc || null,
           items: Array.isArray(o.items) ? o.items : [],
         }));
 

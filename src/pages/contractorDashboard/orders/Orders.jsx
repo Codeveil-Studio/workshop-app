@@ -87,6 +87,8 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
 
   const yours = filteredOrders.filter(o => (o.created_by || '').toLowerCase() === (userEmail || '').toLowerCase());
   const others = filteredOrders.filter(o => (o.created_by || '').toLowerCase() !== (userEmail || '').toLowerCase());
+  // Technicians Note: orders created by you, accepted by a technician, with a non-empty temp_supply_item
+  const technicianNotes = yours.filter(o => (o.accepted_by || '').toString().trim() !== '' && (o.temp_supply_item || '').toString().trim() !== '');
 
   // Helpers for status logic
   const normalizeStatus = (s) => {
@@ -115,6 +117,57 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState('');
 
+  // Assign Supplier modal state
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignSupplyItem, setAssignSupplyItem] = useState('');
+  const [assignDescription, setAssignDescription] = useState('');
+  const [assignError, setAssignError] = useState('');
+
+  const openAssignModal = () => {
+    setAssignError('');
+    setShowAssignModal(true);
+  };
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+    setAssignSupplyItem('');
+    setAssignDescription('');
+    setAssignError('');
+  };
+  const sendToSupplier = () => {
+    const item = assignSupplyItem.trim();
+    if (!item) {
+      setAssignError('Supply Item is required');
+      return;
+    }
+    // Call backend to update supplier fields
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const base = (API_URL || '').replace(/\/+$/, '');
+    const path = /\/api\/?$/.test(base)
+      ? `${base}/work-orders/${(selectedWorkOrder || {}).id}/supplier`
+      : `${base}/api/work-orders/${(selectedWorkOrder || {}).id}/supplier`;
+    const payload = { supply_item: item, item_description: assignDescription || null };
+    fetch(path, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || res.statusText);
+        }
+        // Update local selectedWorkOrder and workOrders list for immediate UI feedback
+        const orderId = (selectedWorkOrder || {}).id;
+        setWorkOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, supply_item: item, item_description: assignDescription || null } : o)));
+        setSelectedWorkOrder((prev) => (prev ? { ...prev, supply_item: item, item_description: assignDescription || null } : prev));
+        setDetails((prev) => (prev ? { ...prev, order: { ...prev.order, supply_item: item, item_description: assignDescription || null } } : prev));
+        closeAssignModal();
+      })
+      .catch((e) => {
+        setAssignError(e.message || 'Failed to update supplier assignment');
+      });
+  };
+
   const viewDetails = async (order) => {
     try {
       setSelectedWorkOrder(order);
@@ -138,6 +191,77 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
       setDetails(null);
     } finally {
       setDetailsLoading(false);
+    }
+  };
+
+  // Confirm technician referral: copy temp fields to permanent, clear temp
+  const confirmReferral = async (orderId) => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const base = (API_URL || '').replace(/\/+$/, '');
+      const path = /\/api\/?$/.test(base)
+        ? `${base}/work-orders/${orderId}/refer-confirm`
+        : `${base}/api/work-orders/${orderId}/refer-confirm`;
+      const res = await fetch(path, { method: 'PUT' });
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : null;
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || res.statusText);
+      }
+      // Update local state
+      setWorkOrders(prev => prev.map(o => {
+        if (o.id === orderId) {
+          const newSupplyItem = o.temp_supply_item || null;
+          const newItemDesc = o.temp_desc || null;
+          return {
+            ...o,
+            supply_item: newSupplyItem,
+            item_description: newItemDesc,
+            temp_supply_item: null,
+            temp_desc: null,
+          };
+        }
+        return o;
+      }));
+      if (selectedWorkOrder?.id === orderId) {
+        setSelectedWorkOrder(prev => prev ? {
+          ...prev,
+          supply_item: prev.temp_supply_item || null,
+          item_description: prev.temp_desc || null,
+          temp_supply_item: null,
+          temp_desc: null,
+        } : prev);
+      }
+    } catch (e) {
+      alert(e.message || 'Failed to confirm referral');
+    }
+  };
+
+  // Decline technician referral: clear temp fields after confirmation
+  const declineReferral = async (orderId) => {
+    const ok = window.confirm('Are you sure you want to decline this technician referral?');
+    if (!ok) return;
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const base = (API_URL || '').replace(/\/+$/, '');
+      const path = /\/api\/?$/.test(base)
+        ? `${base}/work-orders/${orderId}/refer-decline`
+        : `${base}/api/work-orders/${orderId}/refer-decline`;
+      const res = await fetch(path, { method: 'PUT' });
+      const contentType = res.headers.get('content-type') || '';
+      const isJson = contentType.includes('application/json');
+      const data = isJson ? await res.json() : null;
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || res.statusText);
+      }
+      // Update local state
+      setWorkOrders(prev => prev.map(o => (o.id === orderId ? { ...o, temp_supply_item: null, temp_desc: null } : o)));
+      if (selectedWorkOrder?.id === orderId) {
+        setSelectedWorkOrder(prev => prev ? { ...prev, temp_supply_item: null, temp_desc: null } : prev);
+      }
+    } catch (e) {
+      alert(e.message || 'Failed to decline referral');
     }
   };
 
@@ -287,6 +411,57 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
       <h4 className="text-md font-semibold mb-3">Created by Other Contractors</h4>
       {renderTable(others, 'No work orders created by other contractors', false)}
 
+      {/* Technicians Note */}
+      <h4 className="text-md font-semibold mb-3">Technicians Note</h4>
+      <div className="overflow-x-auto mb-8">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Order ID</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Accepted By</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Supply Item</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Item Description</th>
+              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {technicianNotes.map((o) => (
+              <tr key={o.id} className="border-b border-gray-100">
+                <td className="py-4 px-4 font-medium">#{o.id}</td>
+                <td className="py-4 px-4">{o.accepted_by || '—'}</td>
+                <td className="py-4 px-4">{o.temp_supply_item || '—'}</td>
+                <td className="py-4 px-4">{o.temp_desc || '—'}</td>
+                <td className="py-4 px-4">
+                  {o.supply_item ? (
+                    <span className="px-2 py-1 text-sm rounded-md bg-green-100 text-green-700 border border-green-200">Accepted</span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => confirmReferral(o.id)}
+                        className="px-2 py-1 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer"
+                      >
+                        Confirm
+                      </button>
+                      <button
+                        onClick={() => declineReferral(o.id)}
+                        className="px-2 py-1 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 cursor-pointer"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {technicianNotes.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <div className="text-lg font-medium mb-2">No requests from technicians</div>
+          </div>
+        )}
+      </div>
+
       {workOrders.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           <div className="text-lg font-medium mb-2">No work orders created yet</div>
@@ -298,6 +473,22 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
             <h5 className="text-md font-semibold">Work Order Details</h5>
             {detailsLoading && <span className="text-sm text-gray-500">Loading details...</span>}
             {detailsError && <span className="text-sm text-red-600">{detailsError}</span>}
+            {(((selectedWorkOrder || {}).created_by || '').toLowerCase() === (userEmail || '').toLowerCase()) && (
+              ((details?.order?.supply_item || (selectedWorkOrder || {}).supply_item) ? (
+                <span className="px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 border border-green-200">Supplier Assigned</span>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openAssignModal();
+                  }}
+                  className="px-3 py-1 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer"
+                  title="Assign Supplier"
+                >
+                  Send to Supplier
+                </button>
+              ))
+            )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -317,6 +508,10 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
             <div>
               <div className="text-sm text-gray-500">Accepted By</div>
               <div className="font-medium">{details?.order?.accepted_by || 'Not accepted'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Supplier Accepted By</div>
+              <div className="font-medium">{details?.order?.supplier_email || 'Not accepted'}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Customer</div>
@@ -387,6 +582,65 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Assign Supplier Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40" onClick={closeAssignModal} />
+          {/* Modal */}
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg md:max-w-2xl mx-4 sm:mx-6">
+            <div className="p-4 bg-[#29cc6a] text-white rounded-t-2xl flex items-center justify-between">
+              <h6 className="text-lg font-semibold">Assign Supplier</h6>
+              <button
+                className="text-sm text-white/90 hover:text-white bg-white/10 px-2 py-1 rounded cursor-pointer"
+                onClick={closeAssignModal}
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4 max-h-[80vh] overflow-y-auto">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Supply Item <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={assignSupplyItem}
+                  onChange={(e) => setAssignSupplyItem(e.target.value)}
+                  placeholder="Enter supply item"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                {assignError && (
+                  <div className="mt-1 text-sm text-red-600">{assignError}</div>
+                )}
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item Description</label>
+                <textarea
+                  value={assignDescription}
+                  onChange={(e) => setAssignDescription(e.target.value)}
+                  placeholder="Optional description"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-200 flex items-center justify-end gap-2 rounded-b-2xl">
+              <button
+                className="px-3 py-2 text-sm rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 cursor-pointer"
+                onClick={closeAssignModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-3 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer"
+                onClick={sendToSupplier}
+              >
+                Send to Supplier
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
