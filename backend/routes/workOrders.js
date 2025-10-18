@@ -215,6 +215,135 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Search work orders by supplier_email, date range, order_number (id), and VIN
+router.get('/search', async (req, res) => {
+  try {
+    const { supplier_email, date_from, date_to, order_number, vin } = req.query;
+
+    const whereClauses = [];
+    const params = [];
+
+    if (supplier_email) {
+      whereClauses.push('LOWER(TRIM(supplier_email)) = ?');
+      params.push(String(supplier_email).toLowerCase().trim());
+    }
+    if (order_number) {
+      whereClauses.push('id = ?');
+      params.push(Number(order_number));
+    }
+    if (vin) {
+      whereClauses.push('LOWER(TRIM(vehicle_vin)) = ?');
+      params.push(String(vin).toLowerCase().trim());
+    }
+    if (date_from) {
+      whereClauses.push('DATE(created_at) >= ?');
+      params.push(String(date_from));
+    }
+    if (date_to) {
+      whereClauses.push('DATE(created_at) <= ?');
+      params.push(String(date_to));
+    }
+
+    let sql = `SELECT id, created_by, accepted_by, supplier_email, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at, supply_item, item_description, temp_supply_item, temp_desc FROM work_orders`;
+    if (whereClauses.length) {
+      sql += ' WHERE ' + whereClauses.join(' AND ');
+    }
+    sql += ' ORDER BY created_at DESC';
+
+    const [rows] = await pool.query(sql, params);
+
+    const normalize = (r) => {
+      const year = r.vehicle_year || '';
+      const make = r.vehicle_make || '';
+      const model = r.vehicle_model || '';
+      const customer = r.customer_name || '';
+      const title = `${year ? year + ' ' : ''}${make} ${model}`.trim() + (customer ? ` - ${customer}` : '');
+      const statusMap = {
+        'requested': 'Requested',
+        'in-progress': 'In Process',
+        'in_progress': 'In Process',
+        'in progress': 'In Process',
+        'completed': 'Completed',
+        'pending': 'Pending',
+        'accepted': 'In Process',
+      };
+      const rawStatus = (r.status || '').toLowerCase();
+      const displayStatus = statusMap[rawStatus] || r.status || 'Requested';
+      return {
+        id: r.id,
+        title,
+        charges: Number(r.quote_total || 0),
+        status: displayStatus,
+        status_raw: rawStatus,
+        updatedAt: r.updated_at || r.created_at || new Date(),
+        created_by: r.created_by || null,
+        accepted_by: r.accepted_by || null,
+        supplier_email: r.supplier_email || null,
+        customer_name: r.customer_name || null,
+        customer_phone: r.customer_phone || null,
+        vehicle_make: r.vehicle_make || null,
+        vehicle_model: r.vehicle_model || null,
+        vehicle_year: r.vehicle_year || null,
+        vehicle_vin: r.vehicle_vin || null,
+        created_at: r.created_at || null,
+        quote_total: Number(r.quote_total || 0),
+      };
+    };
+
+    const orders = rows.map(normalize);
+
+    // Mismatch diagnostics
+    const mismatches = [];
+    if (supplier_email || order_number || vin || date_from || date_to) {
+      let exactMatchFound = false;
+      for (const r of rows) {
+        const matchesSupplier = supplier_email ? String(r.supplier_email || '').toLowerCase().trim() === String(supplier_email).toLowerCase().trim() : true;
+        const matchesOrder = order_number ? Number(r.id) === Number(order_number) : true;
+        const matchesVin = vin ? String(r.vehicle_vin || '').toLowerCase().trim() === String(vin).toLowerCase().trim() : true;
+        const createdDate = r.created_at ? new Date(r.created_at) : null;
+        const matchesFrom = date_from ? (createdDate && createdDate >= new Date(date_from)) : true;
+        const matchesTo = date_to ? (createdDate && createdDate <= new Date(date_to)) : true;
+        if (matchesSupplier && matchesOrder && matchesVin && matchesFrom && matchesTo) {
+          exactMatchFound = true;
+          break;
+        }
+      }
+
+      if (!exactMatchFound) {
+        if (supplier_email && !rows.some(r => String(r.supplier_email || '').toLowerCase().trim() === String(supplier_email).toLowerCase().trim())) {
+          mismatches.push('Vendor does not match any work order (supplier_email).');
+        }
+        if (order_number && !rows.some(r => Number(r.id) === Number(order_number))) {
+          mismatches.push('Order Number does not match any work order.');
+        }
+        if (vin && !rows.some(r => String(r.vehicle_vin || '').toLowerCase().trim() === String(vin).toLowerCase().trim())) {
+          mismatches.push('VIN does not match any work order.');
+        }
+        if (date_from) {
+          const df = new Date(date_from);
+          if (!rows.some(r => r.created_at && new Date(r.created_at) >= df)) {
+            mismatches.push('Date From is after all work orders.');
+          }
+        }
+        if (date_to) {
+          const dt = new Date(date_to);
+          if (!rows.some(r => r.created_at && new Date(r.created_at) <= dt)) {
+            mismatches.push('Date To is before all work orders.');
+          }
+        }
+        if (rows.length) {
+          mismatches.push('No single work order matches all selected criteria together.');
+        }
+      }
+    }
+
+    res.json({ success: true, orders, mismatches });
+  } catch (e) {
+    console.error('Search work orders failed:', e);
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Fetch full details of a single work order
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);

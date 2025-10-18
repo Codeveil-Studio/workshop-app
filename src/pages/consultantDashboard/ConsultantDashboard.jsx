@@ -100,6 +100,7 @@ export default function ConsultantDashboard() {
     },
   ]);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [showFullDetails, setShowFullDetails] = useState(false);
 
   // Header state (similar to SupplierDashboard)
   const [search, setSearch] = useState("");
@@ -142,6 +143,12 @@ export default function ConsultantDashboard() {
   
   // Dropdown state for Vendor
   const [isVendorOpen, setIsVendorOpen] = useState(false);
+
+  // Supplier emails for Vendor dropdown
+  const [suppliers, setSuppliers] = useState([]);
+  const [suppliersLoading, setSuppliersLoading] = useState(false);
+  const [suppliersError, setSuppliersError] = useState(null);
+  const vendorOptions = useMemo(() => ['All Vendors', ...suppliers], [suppliers]);
 
   // refs for dropdown click-outside handling
   const reportTypeRef = useRef(null);
@@ -221,6 +228,31 @@ export default function ConsultantDashboard() {
       }
     }
     fetchWorkOrders();
+  }, []);
+
+  // Fetch supplier users (role=supplier) for Vendor dropdown
+  useEffect(() => {
+    async function fetchSuppliers() {
+      setSuppliersLoading(true);
+      setSuppliersError(null);
+      try {
+        const res = await fetch('/api/auth/users/supplier');
+        const json = await res.json();
+        if (res.ok && json && Array.isArray(json.users)) {
+          const emails = [...new Set(json.users.map(u => u.email).filter(Boolean))];
+          setSuppliers(emails);
+        } else {
+          setSuppliers([]);
+          setSuppliersError(json.error || 'Failed to load suppliers');
+        }
+      } catch (e) {
+        console.error('Failed to fetch suppliers', e);
+        setSuppliersError('Failed to load suppliers');
+      } finally {
+        setSuppliersLoading(false);
+      }
+    }
+    fetchSuppliers();
   }, []);
 
   // Filter work orders by status (pending, in_progress, completed, cancelled) and search query
@@ -378,47 +410,56 @@ export default function ConsultantDashboard() {
     });
   }
 
-  // --- Generate a report from filters (basic simulation) ---
-  function generateReport() {
+  // --- Generate a report from filters (backend search) ---
+  async function generateReport() {
     try {
-      // Add notification for report generation start
-      addInfoNotification("Generated report", false);
-      
-      // filter sampleOrders by criteria (simple)
-      const filtered = sampleOrders.filter((o) => {
-        if (orderNumber && !o.id.toLowerCase().includes(orderNumber.toLowerCase())) return false;
-        if (vinFilter && !o.vin.toLowerCase().includes(vinFilter.toLowerCase())) return false;
-        if (vendor !== "All Vendors" && o.assignedTo !== vendor) return false;
-        
-        // Convert string date to Date object for proper comparison
-        const orderDate = new Date(o.date);
-        if (dateFrom && orderDate < dateFrom) return false;
-        if (dateTo && orderDate > dateTo) return false;
-        return true;
-      });
+      addInfoNotification('Generating report...', false);
+      const params = new URLSearchParams();
+      if (vendor && vendor !== 'All Vendors') params.set('supplier_email', vendor);
+      if (orderNumber) params.set('order_number', String(orderNumber).trim());
+      if (vinFilter) params.set('vin', String(vinFilter).trim());
+      const toYMD = (d) => {
+        if (!d) return null;
+        const t = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        return t.toISOString().slice(0, 10);
+      };
+      const df = toYMD(dateFrom);
+      const dt = toYMD(dateTo);
+      if (df) params.set('date_from', df);
+      if (dt) params.set('date_to', dt);
+
+      const res = await fetch(`/api/work-orders/search?${params.toString()}`);
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(json.error || 'Search failed');
+      }
+
+      const orders = Array.isArray(json.orders) ? json.orders : [];
+      const mismatches = Array.isArray(json.mismatches) ? json.mismatches : [];
+      mismatches.forEach(msg => addWarningNotification(msg));
+
+      const createdByEmail = localStorage.getItem('userEmail') || localStorage.getItem('email') || null;
+      const createdByRole = localStorage.getItem('userRole') || null;
+
+      const reportIdFromFilters = orderNumber ? String(orderNumber).trim() : (orders.length === 1 ? String(orders[0]?.id ?? orders[0]?.orderNumber ?? `R${Date.now()}`) : `R${Date.now()}`);
 
       const newReport = {
-        id: `R${Date.now()}`,
+        id: reportIdFromFilters,
         title: reportTitle || reportType,
         generatedAt: new Date().toLocaleString(),
         filters: { reportType, vendor, dateFrom, dateTo, orderNumber, vinFilter },
-        data: filtered.length ? filtered : sampleOrders.slice(0, 1), // fallback to something
+        data: orders,
+        createdBy: { email: createdByEmail, role: createdByRole }
       };
 
       setHistory((h) => [newReport, ...h]);
-      
-      // Clear the generating notification and add success notification
-      setTimeout(() => {
-        addSuccessNotification(`${reportType} generated successfully with ${newReport.data.length} records`);
-      }, 500);
-      
-      showMessage("Report generated and saved to history");
-      // open view
+      addSuccessNotification(`${reportType} generated with ${newReport.data.length} records`);
+      showMessage(mismatches.length ? 'Report generated with warnings' : 'Report generated and saved to history');
       setSelectedReport(newReport);
       setViewModalOpen(true);
     } catch (error) {
-      console.error("Report generation failed:", error);
-      addErrorNotification("Failed to generate report. Please try again.");
+      console.error('Report generation failed:', error);
+      addErrorNotification(error.message || 'Failed to generate report. Please try again.');
     }
   }
 
@@ -1192,21 +1233,30 @@ export default function ConsultantDashboard() {
                     </button>
                     {isVendorOpen && (
                       <div className="absolute z-10 w-full top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg transform origin-top transition-all duration-150 max-h-48 overflow-y-auto custom-scrollbar">
-                        {['All Vendors', 'Vendor A', 'Vendor B', 'John'].map((vendorOption) => (
+                        {suppliersLoading && (
+                          <div className="text-sm px-3 py-2 text-gray-500">Loading supplier emails...</div>
+                        )}
+                        {suppliersError && !suppliersLoading && (
+                          <div className="text-sm px-3 py-2 text-red-600">{suppliersError}</div>
+                        )}
+                        {!suppliersLoading && !suppliersError && vendorOptions.map((vendorOption, idx) => (
                           <div
-                            key={vendorOption}
+                            key={`${vendorOption}-${idx}`}
                             onClick={() => {
                               setVendor(vendorOption);
                               setIsVendorOpen(false);
                             }}
                             className={`text-sm px-3 py-2 cursor-pointer hover:bg-[#4ddb86] hover:text-white transition-colors duration-150
                               ${vendor === vendorOption ? 'bg-[#29cc6a] text-white' : 'text-gray-700'}
-                              ${vendorOption === 'John' ? 'rounded-b-md' : ''}
-                              ${vendorOption === 'All Vendors' ? 'rounded-t-md' : ''}`}
+                              ${idx === 0 ? 'rounded-t-md' : ''}
+                              ${idx === vendorOptions.length - 1 ? 'rounded-b-md' : ''}`}
                           >
                             {vendorOption}
                           </div>
                         ))}
+                        {!suppliersLoading && !suppliersError && vendorOptions.length === 1 && (
+                          <div className="text-sm px-3 py-2 text-gray-500">No supplier emails found</div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1940,6 +1990,26 @@ export default function ConsultantDashboard() {
                     }}>Date</th>
                     <th style={{ 
                       padding: '16px 12px', 
+                      textAlign: 'left', 
+                      fontWeight: '600',
+                      color: '#374151',
+                      borderBottom: '2px solid #e5e7eb',
+                      fontSize: '12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>Creator</th>
+                    <th style={{ 
+                      padding: '16px 12px', 
+                      textAlign: 'left', 
+                      fontWeight: '600',
+                      color: '#374151',
+                      borderBottom: '2px solid #e5e7eb',
+                      fontSize: '12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>Technician</th>
+                    <th style={{ 
+                      padding: '16px 12px', 
                       textAlign: 'right', 
                       fontWeight: '600',
                       color: '#374151',
@@ -1976,7 +2046,7 @@ export default function ConsultantDashboard() {
                           color: '#6b7280',
                           fontFamily: 'monospace',
                           fontSize: '12px'
-                        }}>{order.vin || 'N/A'}</td>
+                        }}>{order.vin || order.vehicle_vin || 'N/A'}</td>
                         <td style={{ 
                           padding: '12px',
                           color: '#374151'
@@ -2004,13 +2074,21 @@ export default function ConsultantDashboard() {
                         <td style={{ 
                           padding: '12px',
                           color: '#6b7280'
-                        }}>{order.date ? (order.date instanceof Date ? order.date.toLocaleDateString() : order.date) : 'N/A'}</td>
+                        }}>{order.date ? (order.date instanceof Date ? order.date.toLocaleDateString() : order.date) : (order.created_at ? new Date(order.created_at).toLocaleDateString() : 'N/A')}</td>
+                        <td style={{ 
+                          padding: '12px',
+                          color: '#374151'
+                        }}>{order.created_by || 'N/A'}</td>
+                        <td style={{ 
+                          padding: '12px',
+                          color: '#374151'
+                        }}>{order.accepted_by || 'N/A'}</td>
                         <td style={{ 
                           padding: '12px',
                           textAlign: 'right',
                           fontWeight: '600',
                           color: '#111827'
-                        }}>${order.total || calculatedTotal || 0}</td>
+                        }}>${order.total || order.quote_total || calculatedTotal || 0}</td>
                       </tr>
                     );
                   })}
@@ -2097,7 +2175,7 @@ export default function ConsultantDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-semibold">{selectedReport.title}</h2>
-                  <div className="text-green-100 text-sm mt-1">ID: {selectedReport.id} • {selectedReport.generatedAt}</div>
+                  <div className="text-green-100 text-sm mt-1">ID: {selectedReport.id} • {selectedReport.generatedAt}{selectedReport.createdBy?.email ? ` • Created by: ${selectedReport.createdBy.email}` : ''}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => exportReportAsPDF()} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors duration-200 flex items-center gap-1.5 text-sm">
@@ -2111,6 +2189,12 @@ export default function ConsultantDashboard() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a4 4 0 01-4-4V5a4 4 0 014-4h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a4 4 0 01-4 4z" />
                     </svg>
                     Excel
+                  </button>
+                  <button onClick={() => setShowFullDetails(v => !v)} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors duration-200 flex items-center gap-1.5 text-sm">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                    Details
                   </button>
                   <button onClick={() => setViewModalOpen(false)} className="p-1.5 hover:bg-white/20 text-white rounded-md transition-colors duration-200">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2127,7 +2211,7 @@ export default function ConsultantDashboard() {
                 // Calculate summary metrics
                 const totalOrders = selectedReport.data?.length || 0;
                 const totalRevenue = selectedReport.data?.reduce((sum, order) => {
-                  const orderTotal = (order.services || []).reduce((s, service) => s + (service.price || 0), 0);
+                  const orderTotal = typeof order.quote_total !== 'undefined' ? Number(order.quote_total || 0) : (order.services || []).reduce((s, service) => s + (service.price || 0), 0);
                   return sum + orderTotal;
                 }, 0) || 0;
                 
@@ -2261,6 +2345,62 @@ export default function ConsultantDashboard() {
                 );
               })()}
 
+              {showFullDetails && (
+                <div className="p-4">
+                  <h4 className="text-sm font-semibold text-gray-800 mb-3">Full Work Order Details</h4>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f8fafc' }}>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Order #</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Created By</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Technician</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Supplier Email</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Customer Name</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Customer Phone</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Vehicle Make</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Vehicle Model</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Year</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>VIN</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Status</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Quote Total</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Updated At</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Created At</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Supply Item</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Item Description</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Temp Supply Item</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Temp Desc</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(selectedReport.data || []).map((order, idx) => (
+                          <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                            <td style={{ padding: '10px' }}>{order.id}</td>
+                            <td style={{ padding: '10px' }}>{order.created_by || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.accepted_by || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.supplier_email || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.customer_name || order.customerName || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.customer_phone || order.phone || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.vehicle_make || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.vehicle_model || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.vehicle_year || 'N/A'}</td>
+                            <td style={{ padding: '10px', fontFamily: 'monospace', fontSize: '11px' }}>{order.vehicle_vin || order.vin || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.status || 'N/A'}</td>
+                            <td style={{ padding: '10px', textAlign: 'right' }}>${(order.quote_total || order.total || 0)}</td>
+                            <td style={{ padding: '10px' }}>{order.updated_at ? new Date(order.updated_at).toLocaleString() : (order.updatedAt ? new Date(order.updatedAt).toLocaleString() : 'N/A')}</td>
+                            <td style={{ padding: '10px' }}>{order.created_at ? new Date(order.created_at).toLocaleString() : 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.supply_item || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.item_description || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.temp_supply_item || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>{order.temp_desc || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
               {/* Order Cards Section */}
               <div className="p-4">
                 <h4 className="text-sm font-semibold text-gray-800 mb-4">Order Details ({selectedReport.data?.length || 0} orders)</h4>
@@ -2268,7 +2408,7 @@ export default function ConsultantDashboard() {
                 {/* Order Cards Grid */}
                 <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                   {selectedReport.data?.map((order, idx) => {
-                    const total = (order.services || []).reduce((s, it) => s + (it.price || 0), 0);
+                    const total = typeof order.quote_total !== 'undefined' ? Number(order.quote_total || 0) : (order.services || []).reduce((s, it) => s + (it.price || 0), 0);
                     
                     // Intelligent status detection
                     const getOrderStatus = (order) => {
