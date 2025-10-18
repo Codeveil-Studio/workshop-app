@@ -170,7 +170,9 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
 
   const viewDetails = async (order) => {
     try {
-      setSelectedWorkOrder(order);
+      const isOther = String(order.created_by || '').toLowerCase() !== String(userEmail || '').toLowerCase();
+      // If order belongs to other contractors, do not select it for preview
+      setSelectedWorkOrder(isOther ? null : order);
       setDetailsLoading(true);
       setDetailsError('');
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -291,7 +293,10 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
               <tr 
                 key={order.id} 
                 className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-green-50 border-green-200' : ''}`}
-                onClick={() => setSelectedWorkOrder(order)}
+                onClick={() => {
+                  // Prevent preview selection for 'Created by Other Contractors'
+                  if (allowStatusChange) setSelectedWorkOrder(order); else setSelectedWorkOrder(null);
+                }}
               >
                 <td className="py-4 px-4 font-medium">#{order.id}</td>
                 <td className="py-4 px-4">
