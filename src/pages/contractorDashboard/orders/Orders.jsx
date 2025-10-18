@@ -552,7 +552,7 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
                       <tr key={idx} className="border-b border-gray-100">
                         <td className="py-2 px-3">{it.title || it.name || it.description || 'Item'}</td>
                         <td className="py-2 px-3">{it.qty}</td>
-                        <td className="py-2 px-3">${Number(it.price || 0).toFixed(2)}</td>
+                        <td className="py-2 px-3">${Number((it?.price ?? it?.unit_price ?? 0)).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
