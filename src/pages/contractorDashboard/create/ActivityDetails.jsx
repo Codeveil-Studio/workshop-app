@@ -20,9 +20,11 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
   const fetchActivityItems = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/activity-items');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_URL}/activity-items`);
+
       const data = await response.json();
-      
+
       if (data.success) {
         setActivityData(data.data);
       } else {
@@ -39,13 +41,13 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
     const selectedActivity = activityData.find(
       act => act.activity_name === activity.type
     );
-    
+
     if (selectedActivity && selectedActivity.items.length > 0) {
       setAvailableRepairTypes(selectedActivity.items);
     } else {
       setAvailableRepairTypes([]);
     }
-    
+
     // Reset selected repair types when activity type changes
     setActivity(prev => ({
       ...prev,
@@ -60,7 +62,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
   const handleRepairChange = (itemId, itemName, checked) => {
     setActivity(prev => {
       const currentSelected = prev.selectedRepairTypes || [];
-      
+
       if (checked) {
         // Add to selected repair types
         return {
@@ -86,7 +88,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
   };
 
   const updatePaintCode = (id, field, value) => {
-    setPaintCodes(prev => prev.map(pc => 
+    setPaintCodes(prev => prev.map(pc =>
       pc.id === id ? { ...pc, [field]: value } : pc
     ));
   };
@@ -96,7 +98,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
   };
 
   const changePaintCodeQuantity = (id, delta) => {
-    setPaintCodes(prev => prev.map(pc => 
+    setPaintCodes(prev => prev.map(pc =>
       pc.id === id ? { ...pc, quantity: Math.max(1, pc.quantity + delta) } : pc
     ));
   };
@@ -104,7 +106,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-800">Activity Details</h3>
-      
+
       {/* Activity Type Dropdown - Modern Design */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Activity Type</label>
@@ -153,7 +155,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
       {/* Repair Types - Dynamic Checkbox Styling */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-gray-700">Repair Types</h4>
-        
+
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#29cc6a]"></div>
@@ -165,7 +167,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
               const isSelected = (activity.selectedRepairTypes || []).some(
                 selected => selected.id === repairType.id
               );
-              
+
               return (
                 <label key={repairType.id} className="flex items-center space-x-3 cursor-pointer group">
                   <div className="relative">
@@ -175,11 +177,10 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
                       onChange={(e) => handleRepairChange(repairType.id, repairType.item_name, e.target.checked)}
                       className="sr-only"
                     />
-                    <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${
-                      isSelected 
-                        ? 'bg-[#29cc6a] border-[#29cc6a]' 
+                    <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${isSelected
+                        ? 'bg-[#29cc6a] border-[#29cc6a]'
                         : 'border-gray-300 group-hover:border-gray-400'
-                    }`}>
+                      }`}>
                       {isSelected && (
                         <svg className="w-3 h-3 text-white absolute top-0.5 left-0.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -269,11 +270,10 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
                         onChange={(e) => updatePaintCode(paintCode.id, "triStage", e.target.checked)}
                         className="sr-only"
                       />
-                      <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${
-                        paintCode.triStage 
-                          ? 'bg-[#29cc6a] border-[#29cc6a]' 
+                      <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${paintCode.triStage
+                          ? 'bg-[#29cc6a] border-[#29cc6a]'
                           : 'border-gray-300 group-hover:border-gray-400'
-                      }`}>
+                        }`}>
                         {paintCode.triStage && (
                           <svg className="w-3 h-3 text-white absolute top-0.5 left-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -283,7 +283,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
                     </div>
                     <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-200">Tri Stage</span>
                   </label>
-                  
+
                   {/* Remove Paint Code Button */}
                   <button
                     onClick={() => removePaintCode(paintCode.id)}

@@ -169,7 +169,7 @@ export default function ConsultantDashboard() {
           return;
         }
 
-        const response = await fetch(`/api/auth/user/${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`/auth/user/${encodeURIComponent(userEmail)}`);
         const data = await response.json();
 
         if (data.success && data.user) {
@@ -195,7 +195,7 @@ export default function ConsultantDashboard() {
       setWorkOrdersLoading(true);
       setWorkOrdersError(null);
       try {
-        const res = await fetch('/api/work-orders');
+        const res = await fetch('/work-orders');
         const json = await res.json();
         if (json && json.success && Array.isArray(json.orders)) {
           // Normalize status display
@@ -236,7 +236,7 @@ export default function ConsultantDashboard() {
       setSuppliersLoading(true);
       setSuppliersError(null);
       try {
-        const res = await fetch('/api/auth/users/supplier');
+        const res = await fetch('/auth/users/supplier');
         const json = await res.json();
         if (res.ok && json && Array.isArray(json.users)) {
           const emails = [...new Set(json.users.map(u => u.email).filter(Boolean))];
@@ -428,7 +428,7 @@ export default function ConsultantDashboard() {
       if (df) params.set('date_from', df);
       if (dt) params.set('date_to', dt);
 
-      const res = await fetch(`/api/work-orders/search?${params.toString()}`);
+      const res = await fetch(`/work-orders/search?${params.toString()}`);
       const json = await res.json();
       if (!json.success) {
         throw new Error(json.error || 'Search failed');
@@ -933,7 +933,7 @@ export default function ConsultantDashboard() {
         const wo = result.data;
         (async () => {
           try {
-            const res = await fetch(`/api/work-orders/${wo.id}`);
+            const res = await fetch(`/work-orders/${wo.id}`);
             const json = await res.json();
             if (json && json.success) {
               const ord = json.order || {};
@@ -1438,7 +1438,7 @@ export default function ConsultantDashboard() {
                                     onClick={async () => {
                                       // Fetch details and open like Reports History View
                                       try {
-                                        const res = await fetch(`/api/work-orders/${wo.id}`);
+                                        const res = await fetch(`/work-orders/${wo.id}`);
                                         const json = await res.json();
                                         if (json && json.success) {
                                           const ord = json.order || {};
