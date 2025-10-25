@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Search, Filter, Download } from "lucide-react";
+import RepairTypesList from "../../../components/RepairTypesList";
 
 export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, setSelectedWorkOrder, userEmail }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -537,6 +538,20 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
             <div>
               <div className="text-sm text-gray-500">Total</div>
               <div className="font-medium">${(selectedWorkOrder || {}).total ? Number((selectedWorkOrder || {}).total).toFixed(2) : '0.00'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Activity Type</div>
+              <div className="font-medium">{details?.order?.activity_type || '—'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Activity Description</div>
+              <div className="font-medium">{details?.order?.activity_description || '—'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Repair Types</div>
+              <div className="font-medium">
+                <RepairTypesList repairTypes={details?.order?.repairs_json} className="mt-1" />
+              </div>
             </div>
           </div>
 

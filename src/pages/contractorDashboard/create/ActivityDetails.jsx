@@ -1,19 +1,81 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, Minus } from "lucide-react";
 
 export default function ActivityDetails({ activity, setActivity }) {
   const [showPaintCode, setShowPaintCode] = useState(false);
   const [paintCodes, setPaintCodes] = useState([]);
+  const [activityData, setActivityData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [availableRepairTypes, setAvailableRepairTypes] = useState([]);
+
+  // Fetch activity items on component mount
+  useEffect(() => {
+    fetchActivityItems();
+  }, []);
+
+  // Update available repair types when activity type changes
+  useEffect(() => {
+    updateAvailableRepairTypes();
+  }, [activity.type, activityData]);
+
+  const fetchActivityItems = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/activity-items');
+      const data = await response.json();
+      
+      if (data.success) {
+        setActivityData(data.data);
+      } else {
+        console.error('Failed to fetch activity items:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching activity items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateAvailableRepairTypes = () => {
+    const selectedActivity = activityData.find(
+      act => act.activity_name === activity.type
+    );
+    
+    if (selectedActivity && selectedActivity.items.length > 0) {
+      setAvailableRepairTypes(selectedActivity.items);
+    } else {
+      setAvailableRepairTypes([]);
+    }
+    
+    // Reset selected repair types when activity type changes
+    setActivity(prev => ({
+      ...prev,
+      selectedRepairTypes: []
+    }));
+  };
 
   const handleActivityChange = (field, value) => {
     setActivity(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleRepairChange = (repair, checked) => {
-    setActivity(prev => ({
-      ...prev,
-      repairs: { ...prev.repairs, [repair]: checked }
-    }));
+  const handleRepairChange = (itemId, itemName, checked) => {
+    setActivity(prev => {
+      const currentSelected = prev.selectedRepairTypes || [];
+      
+      if (checked) {
+        // Add to selected repair types
+        return {
+          ...prev,
+          selectedRepairTypes: [...currentSelected, { id: itemId, name: itemName }]
+        };
+      } else {
+        // Remove from selected repair types
+        return {
+          ...prev,
+          selectedRepairTypes: currentSelected.filter(item => item.id !== itemId)
+        };
+      }
+    });
   };
 
   const togglePaintCode = () => {
@@ -56,7 +118,7 @@ export default function ActivityDetails({ activity, setActivity }) {
             <option value="Inspection">Inspection</option>
             <option value="Repair">Repair</option>
             <option value="Maintenance">Maintenance</option>
-            <option value="Diagnostic">Diagnostic</option>
+            <option value="Diagnostics">Diagnostics</option>
           </select>
           {/* Custom dropdown arrow */}
           <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
@@ -89,42 +151,55 @@ export default function ActivityDetails({ activity, setActivity }) {
         />
       </div>
 
-      {/* Repair Types - Updated Checkbox Styling */}
+      {/* Repair Types - Dynamic Checkbox Styling */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-gray-700">Repair Types</h4>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { key: "engineCheck", label: "Engine Check" },
-            { key: "ecuTesting", label: "ECU Testing" },
-            { key: "acService", label: "AC Service" },
-            { key: "brake", label: "Brake" },
-            { key: "oilChange", label: "Oil Change" },
-            { key: "other", label: "Other" }
-          ].map(({ key, label }) => (
-            <label key={key} className="flex items-center space-x-3 cursor-pointer group">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={activity.repairs[key]}
-                  onChange={(e) => handleRepairChange(key, e.target.checked)}
-                  className="sr-only"
-                />
-                <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${
-                  activity.repairs[key] 
-                    ? 'bg-[#29cc6a] border-[#29cc6a]' 
-                    : 'border-gray-300 group-hover:border-gray-400'
-                }`}>
-                  {activity.repairs[key] && (
-                    <svg className="w-3 h-3 text-white absolute top-0.5 left-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-200">{label}</span>
-            </label>
-          ))}
-        </div>
+        
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#29cc6a]"></div>
+            <span className="ml-2 text-sm text-gray-500">Loading repair types...</span>
+          </div>
+        ) : availableRepairTypes.length > 0 ? (
+          <div className="grid grid-cols-2 gap-3">
+            {availableRepairTypes.map((repairType) => {
+              const isSelected = (activity.selectedRepairTypes || []).some(
+                selected => selected.id === repairType.id
+              );
+              
+              return (
+                <label key={repairType.id} className="flex items-center space-x-3 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => handleRepairChange(repairType.id, repairType.item_name, e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${
+                      isSelected 
+                        ? 'bg-[#29cc6a] border-[#29cc6a]' 
+                        : 'border-gray-300 group-hover:border-gray-400'
+                    }`}>
+                      {isSelected && (
+                        <svg className="w-3 h-3 text-white absolute top-0.5 left-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
+                    {repairType.item_name}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-gray-500">
+            <p className="text-sm">No repair types available for this activity.</p>
+          </div>
+        )}
       </div>
 
       {/* Add Paint Code Section */}

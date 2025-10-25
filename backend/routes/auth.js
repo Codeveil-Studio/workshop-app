@@ -305,6 +305,20 @@ router.put('/change-admin-password', async (req, res) => {
   }
 });
 
+// Get user counts grouped by role
+router.get('/roles-stats', async (_req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT role, COUNT(*) AS count FROM users GROUP BY role'
+    );
+    const stats = rows.map(r => ({ role: String(r.role || '').toLowerCase(), count: Number(r.count) || 0 }));
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error fetching roles stats:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 export default router;
 
 

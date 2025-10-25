@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import EditUser from './EditUser';
+import RoleDetails from "./RoleDetails";
 
 /* -------------------------
    Icons
@@ -36,12 +37,7 @@ function IconSort({ className = "w-5 h-5" }) {
 /* -------------------------
    Sample roles data
    ------------------------- */
-const ROLES = [
-  { id: 1, name: "Admin", users: 1 },
-  { id: 2, name: "Technician", users: 23 },
-  { id: 3, name: "Contractor", users: 12 },
-  { id: 4, name: "Supplier", users: 4 },
-];
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export default function Roles({ userRolesState, setUserRolesState }) {
   const [search, setSearch] = useState("");
@@ -51,8 +47,52 @@ export default function Roles({ userRolesState, setUserRolesState }) {
   const [page, setPage] = useState(1);
   const pageSize = 4;
 
+  // dynamic roles state
+  const [roles, setRoles] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    async function fetchRoleStats() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_URL}/api/auth/roles-stats`);
+        const data = await res.json();
+        if (!data?.success) throw new Error("Failed to load roles stats");
+        const nameMap = {
+          contractor: "Contractor",
+          technician: "Technician",
+          supplier: "Supplier",
+          consultant: "Consultant",
+        };
+        const stats = (data.stats || [])
+          .filter((s) => nameMap[s.role])
+          .map((s) => ({ name: nameMap[s.role], users: s.count }));
+        const allRoles = ["Contractor", "Technician", "Supplier", "Consultant"].map((n) => {
+          const found = stats.find((x) => x.name === n);
+          return found || { name: n, users: 0 };
+        });
+        setRoles(allRoles);
+      } catch (e) {
+        console.error(e);
+        setError(e.message || "Unknown error");
+        setRoles([
+          { name: "Contractor", users: 0 },
+          { name: "Technician", users: 0 },
+          { name: "Supplier", users: 0 },
+          { name: "Consultant", users: 0 },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchRoleStats();
+  }, []);
+
+
   // filter roles
-  const filtered = ROLES.filter((role) =>
+  const filtered = roles.filter((role) =>
     role.name.toLowerCase().includes(search.trim().toLowerCase())
   );
 
@@ -62,7 +102,7 @@ export default function Roles({ userRolesState, setUserRolesState }) {
   // If editing a role, show the EditRole component
   if (userRolesState.editingRole) {
     return (
-      <EditUser 
+      <RoleDetails 
         role={userRolesState.editingRole} 
         onBack={() => setUserRolesState({ editingRole: null })} 
       />
@@ -153,7 +193,7 @@ export default function Roles({ userRolesState, setUserRolesState }) {
         ) : (
           pageData.map((role) => (
             <button
-              key={role.id}
+              key={role.name}
               className="w-full flex items-center px-4 py-4 hover:bg-gray-50 cursor-pointer"
               onClick={() => setUserRolesState({ editingRole: role })}
             >

@@ -1,5 +1,6 @@
 // src/components/TechnicianDashboard.jsx
 import React, { useEffect, useRef, useState } from "react";
+import RepairTypesList from "../../components/RepairTypesList";
 
 /**
  * TechnicianDashboard.jsx
@@ -212,6 +213,7 @@ const statusMeta = {
           date: o.updated_at || o.created_at || order.date || '—',
           activityType: o.activity_type || '—',
           notes: o.activity_description || order.notes || '',
+          repairTypes: o.repairs_json || [],
           items,
           workTypes,
           quote_subtotal: Number(o.quote_subtotal || 0),
@@ -828,8 +830,13 @@ const statusMeta = {
                 <div className="mt-3 text-xs text-gray-500">Trim</div>
                 <div>{selectedOrder.trim}</div>
 
-                <div className="mt-3 text-xs text-gray-500">Repair Type</div>
-                <div>{selectedOrder.repairType}</div>
+                <div className="mt-3 text-xs text-gray-500">Activity Type</div>
+                <div>{selectedOrder.activityType}</div>
+
+                <div className="mt-3 text-xs text-gray-500">Repair Types</div>
+                <div>
+                  <RepairTypesList repairTypes={selectedOrder.repairTypes} className="mt-1" />
+                </div>
               </div>
 
               <div>

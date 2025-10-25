@@ -78,14 +78,20 @@ export default function ContractorDashboard() {
     fetchUserData();
   }, []);
 
-  // Notifications state
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: "New work order assigned", time: "2 hours ago", read: false },
-    { id: 2, text: "Customer feedback received", time: "Yesterday", read: false },
-    { id: 3, text: "Invoice payment confirmed", time: "3 days ago", read: true },
-    { id: 4, text: "Maintenance reminder: BMW X5", time: "1 day ago", read: false },
-    { id: 5, text: "Parts delivery scheduled", time: "4 hours ago", read: false },
-  ]);
+  // Notifications state (now dynamic; loaded from localStorage)
+  const [notifications, setNotifications] = useState([]);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('contractorNotifications');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setNotifications(parsed);
+      }
+    } catch {}
+  }, []);
+  const snapshotRef = useRef(new Map());
+  const initializedSnapshotRef = useRef(false);
+  const seenEventsRef = useRef(new Set());
 
   // Toast functionality
   const showToast = (msg, ms = 3000) => {
@@ -95,24 +101,47 @@ export default function ContractorDashboard() {
   };
 
   // Notification handlers
+  const persist = (list) => {
+    try { localStorage.setItem('contractorNotifications', JSON.stringify(list)); } catch {}
+  };
+
   const markAllNotificationsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => {
+      const next = prev.map(n => ({ ...n, read: true }));
+      persist(next);
+      return next;
+    });
     showToast("All notifications marked as read");
   };
 
   const markNotificationRead = (id) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+    setNotifications(prev => {
+      const next = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      persist(next);
+      return next;
+    });
   };
 
   const clearAllNotifications = () => {
-    setNotifications([]);
+    setNotifications(() => {
+      persist([]);
+      return [];
+    });
     showToast("All notifications cleared");
   };
 
   const clearNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications(prev => {
+      const next = prev.filter(n => n.id !== id);
+      persist(next);
+      return next;
+    });
+  };
+
+  // Unified handler for Notifications component: if no id, mark all
+  const handleMarkRead = (id) => {
+    if (!id) return markAllNotificationsRead();
+    return markNotificationRead(id);
   };
 
   // Cleanup toast timer
@@ -164,20 +193,81 @@ export default function ContractorDashboard() {
   const [activity, setActivity] = useState({
     type: "Inspection",
     description: "",
-    repairs: {
-      engineCheck: false,
-      ecuTesting: false,
-      acService: false,
-      brake: false,
-      oilChange: false,
-      other: false,
-    },
+    selectedRepairTypes: [], // Changed from repairs object to selectedRepairTypes array
   });
   // Vehicle photos lifted to parent for submission
   const [vehiclePhotos, setVehiclePhotos] = useState([]);
 
   // Work orders fetched from backend
   const [workOrders, setWorkOrders] = useState([]);
+
+  // Helper to push a notification
+  const pushNotification = (text, orderId) => {
+    const note = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      text,
+      time: new Date().toLocaleString(),
+      read: false,
+      orderId,
+    };
+    setNotifications(prev => {
+      const next = [note, ...prev].slice(0, 200);
+      persist(next);
+      return next;
+    });
+  };
+
+  const normalizeStatus = (s) => {
+    const str = String(s || '').toLowerCase().trim().replace(/[-_]+/g, ' ');
+    if (str.includes('in progress') || str.includes('in process') || str.includes('accepted')) return 'in_progress';
+    if (str.includes('completed')) return 'completed';
+    if (str.includes('cancelled') || str.includes('canceled')) return 'cancelled';
+    if (str.includes('open')) return 'open';
+    if (str.includes('pending')) return 'pending';
+    if (str.includes('requested')) return 'requested';
+    return str || 'requested';
+  };
+
+  const diffAndNotify = (prevMap, nextList) => {
+    const email = ((user && user.email) || localStorage.getItem('userEmail') || '').toLowerCase();
+    const nextMap = new Map();
+    nextList.forEach(o => nextMap.set(o.id, o));
+
+    nextList.forEach(o => {
+      const createdBy = String(o.created_by || '').toLowerCase();
+      if (createdBy !== email) return; // only notify for relevant contractor
+
+      const prev = prevMap.get(o.id);
+      if (!prev) {
+        const key = `new-${o.id}`;
+        if (!seenEventsRef.current.has(key)) {
+          seenEventsRef.current.add(key);
+          pushNotification(`New work order #${o.id} created${o.accepted_by ? `; accepted by ${o.accepted_by}` : ''}`, o.id);
+        }
+      } else {
+        const ps = normalizeStatus(prev.status);
+        const ns = normalizeStatus(o.status);
+        if (ps !== ns) {
+          const key = `status-${o.id}-${ps}->${ns}`;
+          if (!seenEventsRef.current.has(key)) {
+            seenEventsRef.current.add(key);
+            pushNotification(`Work order #${o.id} status changed: ${ps} → ${ns}`, o.id);
+          }
+        }
+        const pa = String(prev.accepted_by || '').trim();
+        const na = String(o.accepted_by || '').trim();
+        if (pa !== na && na) {
+          const key = `accepted-${o.id}-${na}`;
+          if (!seenEventsRef.current.has(key)) {
+            seenEventsRef.current.add(key);
+            pushNotification(`Work order #${o.id} accepted by Technician ${na}`, o.id);
+          }
+        }
+      }
+    });
+
+    snapshotRef.current = nextMap;
+  };
 
   // Fetch work orders from backend (MySQL) and map for UI
   useEffect(() => {
@@ -222,13 +312,72 @@ export default function ContractorDashboard() {
           items: Array.isArray(o.items) ? o.items : [],
         }));
 
+
         setWorkOrders(mapped);
+        // Initialize snapshot on first load; do not notify
+        if (!initializedSnapshotRef.current) {
+          snapshotRef.current = new Map(mapped.map(o => [o.id, o]));
+          initializedSnapshotRef.current = true;
+        }
       } catch (err) {
         console.error('Error fetching work orders:', err);
       }
     };
 
     fetchWorkOrders();
+  }, []);
+
+  // Poll for work order changes and generate notifications
+  useEffect(() => {
+    const intervalMs = 10000; // 10s
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const base = (API_URL || '').replace(/\/+$/, '');
+        const path = /\/api\/?$/.test(base) ? `${base}/work-orders` : `${base}/api/work-orders`;
+        const res = await fetch(path);
+        const contentType = res.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        const data = isJson ? await res.json() : null;
+        if (!res.ok || !data?.success) return;
+        const placeholderImg = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&q=60';
+        const mapped = (data.orders || []).map((o) => ({
+          id: o.id,
+          image: o.image || placeholderImg,
+          make: o.make || o.vehicle_make || '',
+          model: o.model || o.vehicle_model || '',
+          year: o.year || o.vehicle_year || '',
+          customerName: o.customerName || o.customer_name || '',
+          phone: o.phone || o.customer_phone || '',
+          vin: o.vin || o.vehicle_vin || '',
+          date: (() => {
+            const d = o.date || o.created_at || o.updatedAt;
+            try { return d ? new Date(d).toISOString().split('T')[0] : ''; } catch { return ''; }
+          })(),
+          status: o.status || 'Open',
+          total: typeof o.total !== 'undefined' ? Number(o.total) : (typeof o.charges !== 'undefined' ? Number(o.charges) : (typeof o.quote_total !== 'undefined' ? Number(o.quote_total) : 0)),
+          created_by: o.created_by || o.createdBy || '',
+          accepted_by: o.accepted_by || '',
+          supplier_email: o.supplier_email || '',
+          supply_item: o.supply_item || null,
+          item_description: o.item_description || null,
+          temp_supply_item: o.temp_supply_item || null,
+          temp_desc: o.temp_desc || null,
+          items: Array.isArray(o.items) ? o.items : [],
+        }));
+        if (cancelled) return;
+        setWorkOrders(mapped);
+        if (initializedSnapshotRef.current) {
+          diffAndNotify(snapshotRef.current, mapped);
+        } else {
+          snapshotRef.current = new Map(mapped.map(o => [o.id, o]));
+          initializedSnapshotRef.current = true;
+        }
+      } catch {}
+    };
+    const id = setInterval(poll, intervalMs);
+    return () => { cancelled = true; clearInterval(id); };
   }, []);
 
   // Ongoing work: show only work orders created by you with status "in process"
@@ -348,11 +497,17 @@ export default function ContractorDashboard() {
     }));
     // other derived items (e.g., activity checks)
     const repairs = [];
-    Object.entries(activity.repairs).forEach(([k, v]) => {
-      if (v) {
-        repairs.push({ id: `repair-${k}`, title: k.replace(/([A-Z])/g, " $1"), qty: 1, unit: 25, total: 25 });
-      }
-    });
+    if (activity.selectedRepairTypes && Array.isArray(activity.selectedRepairTypes)) {
+      activity.selectedRepairTypes.forEach((repairType) => {
+        repairs.push({ 
+          id: `repair-${repairType.id}`, 
+          title: repairType.name, 
+          qty: 1, 
+          unit: 25, 
+          total: 25 
+        });
+      });
+    }
     return [...parts, ...labour, ...repairs];
   }, [partsCart, workTypes, activity]);
 
@@ -393,7 +548,7 @@ export default function ContractorDashboard() {
 
     if (step === 4) {
       const hasDescription = (activity.description || "").trim() !== "";
-      const anyRepairChecked = Object.values(activity.repairs || {}).some(Boolean);
+      const anyRepairChecked = (activity.selectedRepairTypes || []).length > 0;
       if (!hasDescription || !anyRepairChecked) {
         showToast("Please add activity description and select at least one repair.");
         return;
@@ -414,7 +569,7 @@ export default function ContractorDashboard() {
     setActivity({
       type: "Inspection",
       description: "",
-      repairs: { engineCheck: false, ecuTesting: false, acService: false, brake: false, oilChange: false, other: false },
+      selectedRepairTypes: [], // Changed from repairs object to selectedRepairTypes array
     });
   }
 
@@ -457,9 +612,7 @@ export default function ContractorDashboard() {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const base = (API_URL || '').replace(/\/+$/, '');
     const path = /\/api\/?$/.test(base) ? `${base}/work-orders` : `${base}/api/work-orders`;
-    const repairsArray = Object.entries(activity.repairs || {})
-      .filter(([, v]) => !!v)
-      .map(([k]) => k);
+    const repairsArray = (activity.selectedRepairTypes || []).map(repairType => repairType.name);
 
     const payload = {
       created_by: user?.email || localStorage.getItem('userEmail') || '',
@@ -479,7 +632,7 @@ export default function ContractorDashboard() {
       activity: {
         type: activity.type,
         description: activity.description,
-        repairs: activity.repairs, // also send full object for backend JSON
+        selectedRepairTypes: activity.selectedRepairTypes, // send the new array structure
       },
       paint_codes: [], // reserved; wire from ActivityDetails if needed
       quote: {
@@ -493,7 +646,11 @@ export default function ContractorDashboard() {
         // labour derived from selected work types
         ...workTypes.filter((w) => w.selected).map((w) => ({ description: `${w.title} (labour)`, qty: 1, unit_price: 60 })),
         // repairs flat rate
-        ...repairsArray.map((rk) => ({ description: rk.replace(/([A-Z])/g, ' $1'), qty: 1, unit_price: 25 })),
+        ...(activity.selectedRepairTypes || []).map((repairType) => ({ 
+          description: repairType.name, 
+          qty: 1, 
+          unit_price: 25 
+        })),
       ],
       work_types: workTypes.filter((w) => w.selected).map((w) => ({ id: w.id, title: w.title })),
       photos: (vehiclePhotos || []).map((ph) => ({ url: ph.url, name: ph.name })),

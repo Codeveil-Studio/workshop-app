@@ -72,7 +72,7 @@ router.post('/', async (req, res) => {
         status,
         activity.type || 'Inspection',
         activity.description || null,
-        activity.repairs ? JSON.stringify(activity.repairs) : null,
+        activity.selectedRepairTypes ? JSON.stringify(activity.selectedRepairTypes) : null,
         paint_codes && paint_codes.length ? JSON.stringify(paint_codes) : null,
         subtotal,
         tax,
@@ -153,7 +153,7 @@ router.post('/', async (req, res) => {
 // Fetch work orders, optionally filtered by status
 router.get('/', async (req, res) => {
   const { status } = req.query;
-  let sql = `SELECT id, created_by, accepted_by, supplier_email, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at, supply_item, item_description, temp_supply_item, temp_desc FROM work_orders`;
+  let sql = `SELECT id, created_by, accepted_by, supplier_email, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at, supply_item, item_description, temp_supply_item, temp_desc, activity_type, activity_description, repairs_json FROM work_orders`;
   const params = [];
   if (status) {
     sql += ` WHERE LOWER(TRIM(status)) = ?`;
@@ -200,6 +200,26 @@ router.get('/', async (req, res) => {
         vehicle_vin: r.vehicle_vin || null,
         created_at: r.created_at || null,
         quote_total: Number(r.quote_total || 0),
+        // Activity fields
+        activity_type: r.activity_type || null,
+        activity_description: r.activity_description || null,
+        repairs_json: r.repairs_json ? (() => {
+          try {
+            // Check if it's already an object or array
+            if (typeof r.repairs_json === 'object') {
+              return r.repairs_json;
+            }
+            // Check for corrupted data patterns
+            if (typeof r.repairs_json === 'string' && r.repairs_json.includes('[object Object]')) {
+              console.warn(`Corrupted repairs_json detected for order ${r.id}: "${r.repairs_json}". Setting to null.`);
+              return null;
+            }
+            return JSON.parse(r.repairs_json);
+          } catch (e) {
+            console.warn(`Failed to parse repairs_json for order ${r.id}: "${r.repairs_json}" - ${e.message}`);
+            return null;
+          }
+        })() : null,
         // Supplier assignment fields
         supply_item: r.supply_item || null,
         item_description: r.item_description || null,
@@ -352,6 +372,25 @@ router.get('/:id', async (req, res) => {
     const [orders] = await pool.query(`SELECT * FROM work_orders WHERE id = ?`, [id]);
     if (!orders.length) return res.status(404).json({ success: false, error: 'Not found' });
     const order = orders[0];
+    
+    // Parse repairs_json if it exists
+    if (order.repairs_json) {
+      try {
+        // Check if it's already an object or array
+        if (typeof order.repairs_json === 'object') {
+          // Already parsed, keep as is
+        } else if (typeof order.repairs_json === 'string' && order.repairs_json.includes('[object Object]')) {
+          console.warn(`Corrupted repairs_json detected for order ${id}: "${order.repairs_json}". Setting to null.`);
+          order.repairs_json = null;
+        } else {
+          order.repairs_json = JSON.parse(order.repairs_json);
+        }
+      } catch (e) {
+        console.warn(`Failed to parse repairs_json for order ${id}: "${order.repairs_json}" - ${e.message}`);
+        order.repairs_json = null;
+      }
+    }
+    
     const [items] = await pool.query(`SELECT * FROM work_order_items WHERE work_order_id = ?`, [id]);
     const [workTypes] = await pool.query(`SELECT * FROM work_order_work_types WHERE work_order_id = ?`, [id]);
     const [photos] = await pool.query(`SELECT * FROM work_order_photos WHERE work_order_id = ?`, [id]);
