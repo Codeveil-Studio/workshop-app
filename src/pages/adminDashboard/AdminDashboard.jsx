@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from './layout/Sidebar'
 import Header from './layout/Header'
 // import OrdersTable from './orders/OrdersTable'
@@ -15,6 +15,14 @@ import Settings from './settings/Settings'
 
 export default function AdminDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard')
+  const [kpiData, setKpiData] = useState({
+    contractors: 0,
+    technicians: 0,
+    suppliers: 0,
+    cancelledOrders: 0,
+    completedOrders: 0,
+    inProgressOrders: 0
+  })
   const [orderFilter, setOrderFilter] = useState(null)
   const [orders, setOrders] = useState([
     {
@@ -54,6 +62,46 @@ export default function AdminDashboard() {
     workOrderSetting: null,
     editingActivity: null
   })
+
+  // Fetch KPI data on component mount
+  useEffect(() => {
+    const fetchKpiData = async () => {
+      try {
+        // Fetch user counts by role
+        const rolesResponse = await fetch('/api/auth/roles-stats')
+        const rolesData = await rolesResponse.json()
+        
+        // Fetch work order counts by status
+        const statusResponse = await fetch('/api/work-orders/status-stats')
+        const statusData = await statusResponse.json()
+
+        if (rolesData.success && statusData.success) {
+          const roleStats = rolesData.stats.reduce((acc, stat) => {
+            acc[stat.role] = stat.count
+            return acc
+          }, {})
+
+          const statusStats = statusData.stats.reduce((acc, stat) => {
+            acc[stat.status] = stat.count
+            return acc
+          }, {})
+
+          setKpiData({
+            contractors: roleStats.contractor || 0,
+            technicians: roleStats.technician || 0,
+            suppliers: roleStats.supplier || 0,
+            cancelledOrders: statusStats.cancelled || 0,
+            completedOrders: statusStats.completed || 0,
+            inProgressOrders: statusStats['in_progress'] || statusStats.in_progress || 0
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching KPI data:', error)
+      }
+    }
+
+    fetchKpiData()
+  }, [])
 
   const handleAddOrder = () => {
     setEditingOrder(null)
@@ -123,10 +171,16 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <KpiCard title="Sales" value={0} />
-              <KpiCard title="Repairs" value={0} />
-              <KpiCard title="Categories" value={4} />
-              <KpiCard title="Customers" value={0} />
+              <KpiCard title="Contractors" value={kpiData.contractors} />
+              <KpiCard title="Technicians" value={kpiData.technicians} />
+              <KpiCard title="Suppliers" value={kpiData.suppliers} />
+              <KpiCard title="Cancelled Orders" value={kpiData.cancelledOrders} />
+            </div>
+
+            {/* Additional KPI Cards for Work Order Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
+              <KpiCard title="Completed Orders" value={kpiData.completedOrders} />
+              <KpiCard title="In Progress Orders" value={kpiData.inProgressOrders} />
             </div>
 
 

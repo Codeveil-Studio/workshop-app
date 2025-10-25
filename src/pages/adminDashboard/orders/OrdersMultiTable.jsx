@@ -264,6 +264,37 @@ export default function OrdersMultiTable({ orders: initialOrders, onEdit, select
                     <RepairTypesList repairTypes={detailsData.order?.repairs_json} />
                   </div>
 
+                  {/* Paint Codes Section */}
+                  {detailsData.order?.paint_codes_json && Array.isArray(detailsData.order.paint_codes_json) && detailsData.order.paint_codes_json.length > 0 && (
+                    <div className="bg-blue-50 rounded-lg p-6">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z" />
+                        </svg>
+                        Paint Codes ({detailsData.order.paint_codes_json.length})
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {detailsData.order.paint_codes_json.map((paintCode, idx) => (
+                          <div key={idx} className="bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                {paintCode.code}
+                              </span>
+                              {paintCode.triStage && (
+                                <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                                  Tri Stage
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              Quantity: <span className="font-medium text-gray-900">{paintCode.quantity}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Items Section */}
                     <div className="bg-green-50 rounded-lg p-6">

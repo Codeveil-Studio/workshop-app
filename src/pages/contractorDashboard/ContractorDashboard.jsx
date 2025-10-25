@@ -195,6 +195,10 @@ export default function ContractorDashboard() {
     description: "",
     selectedRepairTypes: [], // Changed from repairs object to selectedRepairTypes array
   });
+  
+  // Paint codes state for Activity step
+  const [paintCodes, setPaintCodes] = useState([]);
+  
   // Vehicle photos lifted to parent for submission
   const [vehiclePhotos, setVehiclePhotos] = useState([]);
 
@@ -571,6 +575,7 @@ export default function ContractorDashboard() {
       description: "",
       selectedRepairTypes: [], // Changed from repairs object to selectedRepairTypes array
     });
+    setPaintCodes([]); // Reset paint codes
   }
 
   // Event handlers
@@ -634,7 +639,7 @@ export default function ContractorDashboard() {
         description: activity.description,
         selectedRepairTypes: activity.selectedRepairTypes, // send the new array structure
       },
-      paint_codes: [], // reserved; wire from ActivityDetails if needed
+      paint_codes: paintCodes, // Send paint codes from ActivityDetails
       quote: {
         subtotal,
         tax,
@@ -711,7 +716,7 @@ export default function ContractorDashboard() {
       case 3:
         return <SpareParts spareCatalog={spareCatalog} partsCart={partsCart} addPartToCart={addPartToCart} changeCartQty={changeCartQty} />;
       case 4:
-        return <ActivityDetails activity={activity} setActivity={setActivity} />;
+        return <ActivityDetails activity={activity} setActivity={setActivity} paintCodes={paintCodes} setPaintCodes={setPaintCodes} />;
       case 5:
         return <Quote quoteItems={quoteItems} subtotal={subtotal} tax={tax} grandTotal={grandTotal} />;
       default:

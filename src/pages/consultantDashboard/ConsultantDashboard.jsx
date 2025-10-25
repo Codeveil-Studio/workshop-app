@@ -2370,6 +2370,7 @@ export default function ConsultantDashboard() {
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Item Description</th>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Temp Supply Item</th>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Temp Desc</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151', borderBottom: '2px solid #e5e7eb' }}>Paint Codes</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2393,6 +2394,29 @@ export default function ConsultantDashboard() {
                             <td style={{ padding: '10px' }}>{order.item_description || 'N/A'}</td>
                             <td style={{ padding: '10px' }}>{order.temp_supply_item || 'N/A'}</td>
                             <td style={{ padding: '10px' }}>{order.temp_desc || 'N/A'}</td>
+                            <td style={{ padding: '10px' }}>
+                              {order.paint_codes_json ? (
+                                (() => {
+                                  try {
+                                    const paintCodes = typeof order.paint_codes_json === 'string' 
+                                      ? JSON.parse(order.paint_codes_json) 
+                                      : order.paint_codes_json;
+                                    return Array.isArray(paintCodes) && paintCodes.length > 0 ? (
+                                      <div style={{ fontSize: '11px' }}>
+                                        {paintCodes.map((paint, paintIdx) => (
+                                          <div key={paintIdx} style={{ marginBottom: '2px' }}>
+                                            <strong>{paint.code}</strong> (Qty: {paint.quantity})
+                                            {paint.triStage && <span style={{ color: '#f59e0b', marginLeft: '4px' }}>• Tri Stage</span>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : 'N/A';
+                                  } catch (e) {
+                                    return 'Invalid Data';
+                                  }
+                                })()
+                              ) : 'N/A'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

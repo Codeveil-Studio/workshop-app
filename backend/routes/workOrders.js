@@ -150,10 +150,24 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Get work order counts grouped by status (must be before /:id route)
+router.get('/status-stats', async (_req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT status, COUNT(*) AS count FROM work_orders GROUP BY status'
+    );
+    const stats = rows.map(r => ({ status: String(r.status || '').toLowerCase(), count: Number(r.count) || 0 }));
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('Error fetching work order status stats:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // Fetch work orders, optionally filtered by status
 router.get('/', async (req, res) => {
   const { status } = req.query;
-  let sql = `SELECT id, created_by, accepted_by, supplier_email, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at, supply_item, item_description, temp_supply_item, temp_desc, activity_type, activity_description, repairs_json FROM work_orders`;
+  let sql = `SELECT id, created_by, accepted_by, supplier_email, customer_name, customer_phone, vehicle_make, vehicle_model, vehicle_year, vehicle_vin, status, quote_total, updated_at, created_at, supply_item, item_description, temp_supply_item, temp_desc, activity_type, activity_description, repairs_json, paint_codes_json FROM work_orders`;
   const params = [];
   if (status) {
     sql += ` WHERE LOWER(TRIM(status)) = ?`;
@@ -217,6 +231,23 @@ router.get('/', async (req, res) => {
             return JSON.parse(r.repairs_json);
           } catch (e) {
             console.warn(`Failed to parse repairs_json for order ${r.id}: "${r.repairs_json}" - ${e.message}`);
+            return null;
+          }
+        })() : null,
+        paint_codes_json: r.paint_codes_json ? (() => {
+          try {
+            // Check if it's already an object or array
+            if (typeof r.paint_codes_json === 'object') {
+              return r.paint_codes_json;
+            }
+            // Check for corrupted data patterns
+            if (typeof r.paint_codes_json === 'string' && r.paint_codes_json.includes('[object Object]')) {
+              console.warn(`Corrupted paint_codes_json detected for order ${r.id}: "${r.paint_codes_json}". Setting to null.`);
+              return null;
+            }
+            return JSON.parse(r.paint_codes_json);
+          } catch (e) {
+            console.warn(`Failed to parse paint_codes_json for order ${r.id}: "${r.paint_codes_json}" - ${e.message}`);
             return null;
           }
         })() : null,
@@ -388,6 +419,24 @@ router.get('/:id', async (req, res) => {
       } catch (e) {
         console.warn(`Failed to parse repairs_json for order ${id}: "${order.repairs_json}" - ${e.message}`);
         order.repairs_json = null;
+      }
+    }
+    
+    // Parse paint_codes_json if it exists
+    if (order.paint_codes_json) {
+      try {
+        // Check if it's already an object or array
+        if (typeof order.paint_codes_json === 'object') {
+          // Already parsed, keep as is
+        } else if (typeof order.paint_codes_json === 'string' && order.paint_codes_json.includes('[object Object]')) {
+          console.warn(`Corrupted paint_codes_json detected for order ${id}: "${order.paint_codes_json}". Setting to null.`);
+          order.paint_codes_json = null;
+        } else {
+          order.paint_codes_json = JSON.parse(order.paint_codes_json);
+        }
+      } catch (e) {
+        console.warn(`Failed to parse paint_codes_json for order ${id}: "${order.paint_codes_json}" - ${e.message}`);
+        order.paint_codes_json = null;
       }
     }
     

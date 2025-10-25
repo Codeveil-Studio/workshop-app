@@ -837,6 +837,27 @@ const statusMeta = {
                 <div>
                   <RepairTypesList repairTypes={selectedOrder.repairTypes} className="mt-1" />
                 </div>
+
+                {selectedOrder.paint_codes_json && Array.isArray(selectedOrder.paint_codes_json) && selectedOrder.paint_codes_json.length > 0 && (
+                  <div>
+                    <div className="mt-3 text-xs text-gray-500">Paint Codes</div>
+                    <div className="mt-1 space-y-1">
+                      {selectedOrder.paint_codes_json.map((paintCode, idx) => (
+                        <div key={idx} className="flex items-center space-x-2 text-sm">
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                            {paintCode.code}
+                          </span>
+                          <span className="text-gray-600">Qty: {paintCode.quantity}</span>
+                          {paintCode.triStage && (
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
+                              Tri Stage
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Minus } from "lucide-react";
 
-export default function ActivityDetails({ activity, setActivity }) {
+export default function ActivityDetails({ activity, setActivity, paintCodes, setPaintCodes }) {
   const [showPaintCode, setShowPaintCode] = useState(false);
-  const [paintCodes, setPaintCodes] = useState([]);
   const [activityData, setActivityData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableRepairTypes, setAvailableRepairTypes] = useState([]);

@@ -766,6 +766,40 @@ export default function SupplierDashboard() {
                                           )}
                                         </div>
                                       )}
+
+                                      {/* Paint Codes Section */}
+                                      {o.paint_codes_json && (
+                                        <div className="mb-3">
+                                          <div className="font-medium">Paint Codes</div>
+                                          {(() => {
+                                            try {
+                                              const paintCodes = typeof o.paint_codes_json === 'string' 
+                                                ? JSON.parse(o.paint_codes_json) 
+                                                : o.paint_codes_json;
+                                              return Array.isArray(paintCodes) && paintCodes.length > 0 ? (
+                                                <div className="mt-1 space-y-1">
+                                                  {paintCodes.map((paint, paintIdx) => (
+                                                    <div key={paintIdx} className="flex items-center gap-2 text-sm">
+                                                      <span className="font-medium text-gray-900">{paint.code}</span>
+                                                      <span className="text-gray-600">Qty: {paint.quantity}</span>
+                                                      {paint.triStage && (
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                          Tri Stage
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <div className="text-xs text-gray-500 mt-1">No paint codes available</div>
+                                              );
+                                            } catch (e) {
+                                              return <div className="text-xs text-red-500 mt-1">Invalid paint code data</div>;
+                                            }
+                                          })()}
+                                        </div>
+                                      )}
+
                                       <div className="font-medium mb-2">Services</div>
                                       <ul className="space-y-2">
                                           {o.services.map((s) => {
