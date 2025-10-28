@@ -371,14 +371,14 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
   );
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-white p-4 md:p-6 rounded-xl shadow">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
           <h3 className="text-lg font-semibold mb-2">Work Orders</h3>
           <div className="text-sm text-gray-500">{filteredOrders.length} of {workOrders.length} orders</div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -387,7 +387,7 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
               placeholder="Search orders..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full sm:w-auto pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
           
@@ -397,7 +397,7 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+              className="w-full sm:w-auto pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
             >
               <option value="all">All Status</option>
               <option value="open">Open</option>

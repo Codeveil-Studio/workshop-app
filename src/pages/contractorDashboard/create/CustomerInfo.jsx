@@ -111,7 +111,7 @@ export default function CustomerInfo({ customer, setCustomer, vehicle, setVehicl
           onBlur={() => setFocusedField(null)}
         />
         <input 
-          className={`${getInputStyle('vehicleTrim', vehicle.trim)} col-span-3`}
+          className={`${getInputStyle('vehicleTrim', vehicle.trim)} col-span-1 sm:col-span-2 lg:col-span-3`}
           placeholder="Trim" 
           value={vehicle.trim} 
           onChange={(e) => setVehicle((v) => ({ ...v, trim: e.target.value }))}
@@ -141,13 +141,13 @@ export default function CustomerInfo({ customer, setCustomer, vehicle, setVehicl
 
         {/* Photo Preview Grid */}
         {vehiclePhotos && vehiclePhotos.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {vehiclePhotos.map((photo) => (
               <div key={photo.id} className="relative group">
                 <img 
                   src={photo.url} 
                   alt={photo.name}
-                  className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                  className="w-full h-20 sm:h-24 object-cover rounded-lg border border-gray-200"
                 />
                 <button
                   onClick={() => removePhoto(photo.id)}

@@ -41,6 +41,7 @@ export default function ContractorDashboard() {
   const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const toastTimer = useRef(null);
 
   // Fetch user data on component mount
@@ -823,11 +824,13 @@ export default function ContractorDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex text-gray-800">
-      {/* LEFT: rounded vertical navigation card */}
-      <ContractorSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} />
+      {/* LEFT: rounded vertical navigation card - hidden on mobile */}
+      <div className="hidden md:block">
+        <ContractorSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} />
+      </div>
 
       {/* RIGHT: main content */}
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-4 md:p-8">
         {/* TOP row (search + small actions) */}
         <ContractorHeader 
           user={user} 
@@ -838,6 +841,11 @@ export default function ContractorDashboard() {
           notifications={notifications}
           markAllRead={markAllNotificationsRead}
           clearNotifications={clearAllNotifications}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onLogout={handleLogout}
         />
         
         {/* Toast notification */}
@@ -887,15 +895,15 @@ export default function ContractorDashboard() {
           </div>
         )}
 
-        {/* MAIN GRID: left (content) & right (preview) */}
-        <div className="grid grid-cols-12 gap-6">
+        {/* MAIN GRID: left (content) & right (preview) - responsive layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
           {/* LEFT: large content */}
-          <div className="col-span-8">
+          <div className="lg:col-span-8">
             {renderMainContent()}
           </div>
 
-          {/* RIGHT: preview / details */}
-          <div className="col-span-4">
+          {/* RIGHT: preview / details - hidden on mobile, shown on large screens */}
+          <div className="lg:col-span-4">
             <div className="sticky top-8 space-y-4">
               <QuickActions 
                 activeTab={activeTab}
