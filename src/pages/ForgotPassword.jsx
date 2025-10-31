@@ -4,7 +4,8 @@ import showPasswordIcon from "../assets/showpassword.png";
 import hidePasswordIcon from "../assets/hidepassword.png";
 import logo from "../assets/logo.png";
 
-const API_BASE_URL = 'http://localhost:5000/api/auth';
+// Use environment API base if available, fallback to local dev
+const API_BASE_URL = `${import.meta?.env?.VITE_API_URL || 'http://localhost:5000/api'}/auth`;
 
 export default function ForgotPassword() {
   const [step, setStep] = useState(1);
@@ -251,7 +252,7 @@ export default function ForgotPassword() {
               {loading ? "Sending..." : "Send OTP"}
             </button>
             <div className="text-center text-sm">
-              <Link to="/login" className="text-gray-500 hover:underline">
+              <Link to="/loginselection" className="text-gray-500 hover:underline">
                 Back to Login
               </Link>
             </div>
