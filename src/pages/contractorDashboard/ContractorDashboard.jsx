@@ -539,6 +539,19 @@ export default function ContractorDashboard() {
         showToast("Please fill all customer and vehicle fields before continuing.");
         return;
       }
+
+      // Odometer validations: digits-only and must match
+      const digitsOnly = /^\d+$/;
+      const odo = String(vehicle.odometer || "");
+      const codo = String(vehicle.confirmOdometer || "");
+      if (!digitsOnly.test(odo) || !digitsOnly.test(codo)) {
+        showToast("Odometer fields must contain only numbers.");
+        return;
+      }
+      if (odo !== codo) {
+        showToast("Odometer and Confirm Odometer must match.");
+        return;
+      }
     }
 
     if (step === 2) {
@@ -785,7 +798,26 @@ export default function ContractorDashboard() {
                 <ChevronLeft size={14} /> Previous
               </button>
               {step < steps.length && (
-                <button onClick={goNext} className="px-4 py-2 rounded-lg bg-green-600 text-white flex items-center gap-2 cursor-pointer">
+                <button
+                  onClick={goNext}
+                  disabled={step === 1 && (
+                    // Compute if Next should be disabled for step 1
+                    !((customer.name || '').trim() && (customer.phone || '').trim()) ||
+                    ![
+                      vehicle.make,
+                      vehicle.model,
+                      vehicle.vin,
+                      vehicle.year,
+                      vehicle.odometer,
+                      vehicle.confirmOdometer,
+                      vehicle.trim,
+                    ].every((v) => (v || '').toString().trim() !== '') ||
+                    !/^\d+$/.test(String(vehicle.odometer || '')) ||
+                    !/^\d+$/.test(String(vehicle.confirmOdometer || '')) ||
+                    String(vehicle.odometer || '') !== String(vehicle.confirmOdometer || '')
+                  )}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Next <ChevronRight size={14} />
                 </button>
               )}

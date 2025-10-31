@@ -40,9 +40,26 @@ export default function ForgotPassword() {
       showError("Please enter a valid email address.");
       return;
     }
-
+    
     setLoading(true);
     try {
+      // Pre-check: verify email exists before sending OTP
+      try {
+        const checkRes = await fetch(`${API_BASE_URL}/user/${encodeURIComponent(email)}`);
+        if (!checkRes.ok) {
+          // 404 => user not found
+          const err = await checkRes.json().catch(() => ({}));
+          showError(err?.error || "Email not registered.");
+          setLoading(false);
+          return;
+        }
+      } catch (checkError) {
+        console.error('Error verifying email existence:', checkError);
+        showError("Network error. Please check your connection and try again.");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/request-password-reset`, {
         method: 'POST',
         headers: {
