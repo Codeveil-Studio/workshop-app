@@ -21,6 +21,12 @@ export default function RepairTypesList({
     return <span className={`text-gray-500 ${className}`}>{emptyMessage}</span>;
   }
 
+  const formatPrice = (value) => {
+    const num = Number(value);
+    if (!isFinite(num) || num <= 0) return null;
+    return Number.isInteger(num) ? num.toFixed(0) : num.toFixed(2);
+  };
+
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {repairTypes.map((repair, idx) => (
@@ -28,7 +34,15 @@ export default function RepairTypesList({
           key={idx} 
           className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs"
         >
-          {repair.name || repair.title || repair}
+          {(() => {
+            // Handle string repairs
+            if (typeof repair === 'string') return repair;
+
+            const name = repair?.name || repair?.title || repair?.description || repair?.item_name || 'Item';
+            const priceRaw = repair?.price ?? repair?.unit_price ?? repair?.unitPrice ?? null;
+            const price = formatPrice(priceRaw);
+            return price ? `${name} ($${price})` : name;
+          })()}
         </span>
       ))}
     </div>

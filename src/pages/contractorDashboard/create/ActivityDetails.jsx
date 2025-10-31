@@ -27,6 +27,11 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
 
       if (data.success) {
         setActivityData(data.data);
+        // Ensure the selected activity type is one of the fetched types
+        const names = (data.data || []).map(a => a.activity_name);
+        if (!names.includes(activity.type)) {
+          setActivity(prev => ({ ...prev, type: names[0] || '' }));
+        }
       } else {
         console.error('Failed to fetch activity items:', data.error);
       }
@@ -59,7 +64,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
     setActivity(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleRepairChange = (itemId, itemName, checked) => {
+  const handleRepairChange = (itemId, itemName, itemPrice, checked) => {
     setActivity(prev => {
       const currentSelected = prev.selectedRepairTypes || [];
 
@@ -67,7 +72,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
         // Add to selected repair types
         return {
           ...prev,
-          selectedRepairTypes: [...currentSelected, { id: itemId, name: itemName }]
+          selectedRepairTypes: [...currentSelected, { id: itemId, name: itemName, price: itemPrice }]
         };
       } else {
         // Remove from selected repair types
@@ -116,10 +121,11 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
             onChange={(e) => handleActivityChange("type", e.target.value)}
             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none text-gray-700 font-medium transition-all duration-200 hover:border-gray-300"
           >
-            <option value="Inspection">Inspection</option>
-            <option value="Repair">Repair</option>
-            <option value="Maintenance">Maintenance</option>
-            <option value="Diagnostics">Diagnostics</option>
+            {activityData.map((act) => (
+              <option key={act.activity_id} value={act.activity_name}>
+                {act.activity_name}
+              </option>
+            ))}
           </select>
           {/* Custom dropdown arrow */}
           <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
@@ -174,7 +180,7 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      onChange={(e) => handleRepairChange(repairType.id, repairType.item_name, e.target.checked)}
+                      onChange={(e) => handleRepairChange(repairType.id, repairType.item_name, repairType.price, e.target.checked)}
                       className="sr-only"
                     />
                     <div className={`w-5 h-5 rounded border-2 transition-all duration-200 ${isSelected
@@ -190,6 +196,9 @@ export default function ActivityDetails({ activity, setActivity, paintCodes, set
                   </div>
                   <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
                     {repairType.item_name}
+                    {repairType.price !== undefined && repairType.price !== null && (
+                      <span className="text-gray-600"> ({`$${Number(repairType.price) % 1 === 0 ? Number(repairType.price) : Number(repairType.price).toFixed(2)}`})</span>
+                    )}
                   </span>
                 </label>
               );

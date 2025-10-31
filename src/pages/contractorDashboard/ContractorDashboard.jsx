@@ -181,6 +181,7 @@ export default function ContractorDashboard() {
     { id: "others", title: "Other", img: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?w=600&q=60", selected: false },
   ];
   const [workTypes, setWorkTypes] = useState(initialWorkTypes);
+  const [otherWorkTypeText, setOtherWorkTypeText] = useState('');
 
   // spare parts catalog (select & add to cart)
   const spareCatalog = [
@@ -470,6 +471,13 @@ export default function ContractorDashboard() {
   // Helpers: workTypes selection toggle
   function toggleWorkTypeSelection(id) {
     setWorkTypes((prev) => prev.map((w) => (w.id === id ? { ...w, selected: !w.selected } : w)));
+    if (id === 'others') {
+      // If toggling off 'Other', clear the text input
+      const isSelecting = !workTypes.find(w => w.id === 'others')?.selected;
+      if (!isSelecting) {
+        setOtherWorkTypeText('');
+      }
+    }
   }
 
   // Parts cart helpers
@@ -671,7 +679,12 @@ export default function ContractorDashboard() {
           unit_price: 25 
         })),
       ],
-      work_types: workTypes.filter((w) => w.selected).map((w) => ({ id: w.id, title: w.title })),
+      work_types: workTypes
+        .filter((w) => w.selected)
+        .map((w) => ({ 
+          id: w.id, 
+          title: (w.id === 'others' && (otherWorkTypeText || '').trim()) ? (otherWorkTypeText || '').trim() : w.title 
+        })),
       photos: (vehiclePhotos || []).map((ph) => ({ url: ph.url, name: ph.name })),
     };
 
@@ -726,7 +739,12 @@ export default function ContractorDashboard() {
       case 1:
         return <CustomerInfo customer={customer} setCustomer={setCustomer} vehicle={vehicle} setVehicle={setVehicle} vehiclePhotos={vehiclePhotos} setVehiclePhotos={setVehiclePhotos} />;
       case 2:
-        return <WorkTypes workTypes={workTypes} toggleWorkTypeSelection={toggleWorkTypeSelection} />;
+  return <WorkTypes 
+    workTypes={workTypes} 
+    toggleWorkTypeSelection={toggleWorkTypeSelection} 
+    otherText={otherWorkTypeText}
+    onOtherTextChange={setOtherWorkTypeText}
+  />;
       case 3:
         return <SpareParts spareCatalog={spareCatalog} partsCart={partsCart} addPartToCart={addPartToCart} changeCartQty={changeCartQty} />;
       case 4:
@@ -800,22 +818,28 @@ export default function ContractorDashboard() {
               {step < steps.length && (
                 <button
                   onClick={goNext}
-                  disabled={step === 1 && (
-                    // Compute if Next should be disabled for step 1
-                    !((customer.name || '').trim() && (customer.phone || '').trim()) ||
-                    ![
-                      vehicle.make,
-                      vehicle.model,
-                      vehicle.vin,
-                      vehicle.year,
-                      vehicle.odometer,
-                      vehicle.confirmOdometer,
-                      vehicle.trim,
-                    ].every((v) => (v || '').toString().trim() !== '') ||
-                    !/^\d+$/.test(String(vehicle.odometer || '')) ||
-                    !/^\d+$/.test(String(vehicle.confirmOdometer || '')) ||
-                    String(vehicle.odometer || '') !== String(vehicle.confirmOdometer || '')
-                  )}
+                  disabled={
+                    (step === 1 && (
+                      // Compute if Next should be disabled for step 1
+                      !((customer.name || '').trim() && (customer.phone || '').trim()) ||
+                      ![
+                        vehicle.make,
+                        vehicle.model,
+                        vehicle.vin,
+                        vehicle.year,
+                        vehicle.odometer,
+                        vehicle.confirmOdometer,
+                        vehicle.trim,
+                      ].every((v) => (v || '').toString().trim() !== '') ||
+                      !/^\d+$/.test(String(vehicle.odometer || '')) ||
+                      !/^\d+$/.test(String(vehicle.confirmOdometer || '')) ||
+                      String(vehicle.odometer || '') !== String(vehicle.confirmOdometer || '')
+                    )) ||
+                    (step === 2 && (
+                      // If 'Other' selected, require the text field
+                      (workTypes.some(w => w.id === 'others' && w.selected) && !((otherWorkTypeText || '').trim()))
+                    ))
+                  }
                   className="px-4 py-2 rounded-lg bg-green-600 text-white flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next <ChevronRight size={14} />

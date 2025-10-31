@@ -6,7 +6,24 @@ const router = express.Router();
 // GET /api/activity-items - Get all activity items grouped by activity type
 router.get('/', async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
+    // Detect if price column exists on activity_item_types
+    const [priceCol] = await pool.execute("SHOW COLUMNS FROM activity_item_types LIKE 'price'");
+    const hasPrice = Array.isArray(priceCol) && priceCol.length > 0;
+
+    const selectSql = hasPrice
+      ? `
+      SELECT 
+        at.id as activity_id,
+        at.name as activity_name,
+        ait.id as item_id,
+        ait.item_name,
+        ait.description,
+        ait.price
+      FROM activity_types at
+      LEFT JOIN activity_item_types ait ON at.id = ait.activity_id
+      ORDER BY at.id, ait.item_name
+    `
+      : `
       SELECT 
         at.id as activity_id,
         at.name as activity_name,
@@ -16,7 +33,9 @@ router.get('/', async (req, res) => {
       FROM activity_types at
       LEFT JOIN activity_item_types ait ON at.id = ait.activity_id
       ORDER BY at.id, ait.item_name
-    `);
+    `;
+
+    const [rows] = await pool.execute(selectSql);
 
     // Group items by activity type
     const groupedData = {};
@@ -34,11 +53,15 @@ router.get('/', async (req, res) => {
       
       // Only add item if it exists (LEFT JOIN might return null items)
       if (row.item_id) {
-        groupedData[activityName].items.push({
+        const item = {
           id: row.item_id,
           item_name: row.item_name,
           description: row.description
-        });
+        };
+        if (typeof row.price !== 'undefined') {
+          item.price = row.price;
+        }
+        groupedData[activityName].items.push(item);
       }
     });
 
@@ -58,7 +81,7 @@ router.get('/', async (req, res) => {
 // POST /api/activity-items - Add a new activity item
 router.post('/', async (req, res) => {
   try {
-    const { activity_id, item_name, description } = req.body;
+    const { activity_id, item_name, description, price } = req.body;
 
     if (!activity_id || !item_name) {
       return res.status(400).json({ 
@@ -80,14 +103,40 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Detect price column existence
+    const [priceCol] = await pool.execute("SHOW COLUMNS FROM activity_item_types LIKE 'price'");
+    const hasPrice = Array.isArray(priceCol) && priceCol.length > 0;
+
+    if (hasPrice) {
+      // Validate price: must be provided and numeric
+      const parsed = Number(price);
+      if (price === undefined || price === null || Number.isNaN(parsed)) {
+        return res.status(400).json({ success: false, error: 'price is required and must be a number' });
+      }
+    }
+
     // Insert new item
-    const [result] = await pool.execute(
-      'INSERT INTO activity_item_types (activity_id, item_name, description) VALUES (?, ?, ?)',
-      [activity_id, item_name, description || null]
-    );
+    const insertSql = hasPrice
+      ? 'INSERT INTO activity_item_types (activity_id, item_name, description, price) VALUES (?, ?, ?, ?)'
+      : 'INSERT INTO activity_item_types (activity_id, item_name, description) VALUES (?, ?, ?)';
+    const insertParams = hasPrice
+      ? [activity_id, item_name, description || null, Number(price)]
+      : [activity_id, item_name, description || null];
+
+    const [result] = await pool.execute(insertSql, insertParams);
 
     // Get the inserted item with activity name
-    const [newItem] = await pool.execute(`
+    const selectSql = hasPrice ? `
+      SELECT 
+        ait.id,
+        ait.item_name,
+        ait.description,
+        ait.price,
+        at.name as activity_name
+      FROM activity_item_types ait
+      JOIN activity_types at ON ait.activity_id = at.id
+      WHERE ait.id = ?
+    ` : `
       SELECT 
         ait.id,
         ait.item_name,
@@ -96,7 +145,8 @@ router.post('/', async (req, res) => {
       FROM activity_item_types ait
       JOIN activity_types at ON ait.activity_id = at.id
       WHERE ait.id = ?
-    `, [result.insertId]);
+    `;
+    const [newItem] = await pool.execute(selectSql, [result.insertId]);
 
     res.status(201).json({ 
       success: true, 
@@ -105,7 +155,8 @@ router.post('/', async (req, res) => {
         id: newItem[0].id,
         item_name: newItem[0].item_name,
         description: newItem[0].description,
-        activity_name: newItem[0].activity_name
+        activity_name: newItem[0].activity_name,
+        price: hasPrice ? newItem[0].price : undefined
       }
     });
   } catch (error) {

@@ -1,7 +1,7 @@
 import React from "react";
 import { Plus, Minus } from "lucide-react";
 
-export default function WorkTypes({ workTypes, toggleWorkTypeSelection }) {
+export default function WorkTypes({ workTypes, toggleWorkTypeSelection, otherText = '', onOtherTextChange }) {
   return (
     <div>
       <h3 className="text-sm font-semibold text-green-600 mb-3">Add Work Type</h3>
@@ -31,6 +31,20 @@ export default function WorkTypes({ workTypes, toggleWorkTypeSelection }) {
                 {w.selected ? <Minus size={16} /> : <Plus size={16} />}
               </button>
             </div>
+            {w.id === 'others' && w.selected && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  value={otherText}
+                  onChange={(e) => onOtherTextChange && onOtherTextChange(e.target.value)}
+                  placeholder="Please specify the work type"
+                  className={`w-full p-2 rounded border ${
+                    (otherText || '').trim() ? 'border-green-400' : 'border-red-400'
+                  } focus:outline-none focus:ring-2 focus:ring-green-300`}
+                />
+                <p className="text-xs mt-1 ${ (otherText || '').trim() ? 'text-gray-500' : 'text-red-600' }">{(otherText || '').trim() ? 'Provide more details if needed.' : 'This field is required when selecting Other.'}</p>
+              </div>
+            )}
           </div>
         ))}
       </div>
