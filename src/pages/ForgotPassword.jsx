@@ -5,7 +5,7 @@ import hidePasswordIcon from "../assets/hidepassword.png";
 import logo from "../assets/logo.png";
 
 // Use environment API base if available, fallback to local dev
-const API_BASE_URL = `${import.meta?.env?.VITE_API_URL || 'http://localhost:5000/api'}/auth`;
+const API_BASE_URL = `${import.meta?.env?.VITE_API_URL}/auth`;
 
 export default function ForgotPassword() {
   const [step, setStep] = useState(1);
