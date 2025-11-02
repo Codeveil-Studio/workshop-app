@@ -1,13 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Plus, Minus } from "lucide-react";
 
 export default function SpareParts({ spareCatalog, partsCart, addPartToCart, changeCartQty }) {
+  const [catalog, setCatalog] = useState(spareCatalog || []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/spare-part-prices');
+        const data = await res.json();
+        if (res.ok && data?.success && Array.isArray(data.items)) {
+          const mapped = data.items.map((it) => ({ id: it.id, title: it.name, price: Number(it.price || 0) }));
+          if (mounted) setCatalog(mapped);
+        }
+      } catch (e) {
+        console.error('Failed to load spare parts', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   return (
     <div className="flex flex-col lg:flex-row lg:gap-6">
       <div className="flex-1">
         <h3 className="text-sm font-semibold text-green-600 mb-3">Add Spare Parts</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {spareCatalog.map((p) => (
+          {(catalog || []).map((p) => (
             <div key={p.id} className="bg-white rounded-lg p-3 shadow-sm flex items-center justify-between">
               <div className="flex-1 min-w-0 pr-2">
                 <div className="text-sm font-medium truncate">{p.title}</div>

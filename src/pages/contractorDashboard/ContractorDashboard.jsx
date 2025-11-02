@@ -183,6 +183,36 @@ export default function ContractorDashboard() {
   const [workTypes, setWorkTypes] = useState(initialWorkTypes);
   const [otherWorkTypeText, setOtherWorkTypeText] = useState('');
 
+  // Dynamic work type catalog fetched from backend (name + price)
+  const [workTypeCatalog, setWorkTypeCatalog] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/work-type-prices');
+        const data = await res.json();
+        if (res.ok && data?.success && Array.isArray(data.items)) {
+          const mapped = data.items.map((it) => ({ id: it.id, title: it.name, name: it.name, price: Number(it.price || 0) }));
+          if (mounted) setWorkTypeCatalog(mapped);
+        }
+      } catch (e) {
+        console.error('Failed to load work type prices', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const getWorkTypePrice = (w) => {
+    // Match by id or title; for 'others', try matching otherWorkTypeText
+    const titleToMatch = w.id === 'others' ? (otherWorkTypeText || '').trim() : (w.title || '').trim();
+    const lc = (titleToMatch || '').toLowerCase();
+    const byId = workTypeCatalog.find((it) => String(it.id) === String(w.id));
+    if (byId) return Number(byId.price || 0);
+    const byTitle = workTypeCatalog.find((it) => String(it.title || '').toLowerCase() === lc);
+    if (byTitle) return Number(byTitle.price || 0);
+    return 0; // default to 0 if no match found
+  };
+
   // spare parts catalog (select & add to cart)
   const spareCatalog = [
     { id: "sp1", title: "Oil Filter", price: 12.5 },
@@ -501,13 +531,16 @@ export default function ContractorDashboard() {
     // parts cart entries
     const parts = partsCart.map((p) => ({ id: p.id, title: p.title, qty: p.qty, unit: p.price, total: p.qty * p.price }));
     // labour/activity (simple fixed labour per selected workType)
-    const labour = workTypes.filter((w) => w.selected).map((w) => ({
-      id: `labour-${w.id}`,
-      title: `${w.title} (labour)`,
-      qty: 1,
-      unit: 60, // example labour rate per unit
-      total: 60,
-    }));
+    const labour = workTypes.filter((w) => w.selected).map((w) => {
+      const unitPrice = getWorkTypePrice(w);
+      return {
+        id: `labour-${w.id}`,
+        title: `${w.title} (labour)`,
+        qty: 1,
+        unit: unitPrice,
+        total: unitPrice,
+      };
+    });
     // other derived items (e.g., activity checks)
     const repairs = [];
     if (activity.selectedRepairTypes && Array.isArray(activity.selectedRepairTypes)) {
@@ -673,7 +706,7 @@ export default function ContractorDashboard() {
         // parts from cart
         ...partsCart.map((p) => ({ description: p.title, qty: p.qty, unit_price: p.price })),
         // labour derived from selected work types
-        ...workTypes.filter((w) => w.selected).map((w) => ({ description: `${w.title} (labour)`, qty: 1, unit_price: 60 })),
+        ...workTypes.filter((w) => w.selected).map((w) => ({ description: `${w.title} (labour)`, qty: 1, unit_price: getWorkTypePrice(w) })),
         // repairs flat rate
         ...(activity.selectedRepairTypes || []).map((repairType) => ({ 
           description: repairType.name, 

@@ -35,17 +35,35 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Update a work type price
+router.put('/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const name = String(req.body?.name || '').trim();
+    const priceRaw = req.body?.price;
+    const priceNum = Number(priceRaw);
+
+    if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+    if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
+    if (!Number.isFinite(priceNum) || priceNum < 0) {
+      return res.status(400).json({ success: false, error: 'Price must be a non-negative number' });
+    }
+
+    const [result] = await pool.query('UPDATE work_type_price SET name = ?, price = ? WHERE id = ?', [name, priceNum, id]);
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Delete a work type price
 router.delete('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ success: false, error: 'Invalid id' });
-    }
+    if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
     const [result] = await pool.query('DELETE FROM work_type_price WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, error: 'Item not found' });
-    }
+    if (result.affectedRows === 0) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

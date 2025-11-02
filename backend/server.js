@@ -9,6 +9,7 @@ import activityTypesRoutes from './routes/activityTypes.js';
 import pool from './config/db.js';
 import workTypePricesRoutes from './routes/workTypePrices.js';
 import sparePartPricesRoutes from './routes/sparePartPrices.js';
+// import workTypePricesRoutes from './routes/workTypePrices.js';
 import transporter from './config/mail.js';
 
 const app = express();
