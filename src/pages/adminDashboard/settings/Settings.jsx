@@ -35,8 +35,8 @@ export default function Settings({ settingsState, setSettingsState }) {
     const items = [
         "Profile Settings",
         "Work Order Settings",
-        "Price/Margin Management",
-        "Labor Rates",
+        "Work Type Price Management",
+        "Spare Parts Prices",
         "Language",
     ];
 
@@ -45,10 +45,10 @@ export default function Settings({ settingsState, setSettingsState }) {
         return <ProfileSettings onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
     }
     // If Labor Rates is selected, show LaborRates
-    if (settingsState.selectedSetting === "Labor Rates") {
+    if (settingsState.selectedSetting === "Spare Parts Prices") {
         return <LaborRates onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
     }
-    if (settingsState.selectedSetting === "Price/Margin Management") {
+    if (settingsState.selectedSetting === "Work Type Price Management") {
         return <PriceManagement onBack={() => setSettingsState(prev => ({ ...prev, selectedSetting: null }))} />;
     }
     if (settingsState.selectedSetting === "Work Order Settings") {

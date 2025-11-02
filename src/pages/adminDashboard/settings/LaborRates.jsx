@@ -138,13 +138,13 @@ export default function LaborRates() {
     <div className="bg-white rounded-lg shadow border-t-2 border-[#29cc6a]">
       {/* Header with action */}
       <div className="flex items-center justify-between px-6 py-5">
-        <span className="text-base text-gray-800 font-semibold">Labor Rates</span>
+        <span className="text-base text-gray-800 font-semibold">Spare Parts</span>
         <button
           type="button"
           onClick={openForm}
           className="px-3 py-2 rounded border border-[#29cc6a] bg-[#29cc6a] text-white text-sm font-medium hover:bg-[#22b85f]"
         >
-          Add Labor Rate
+          Add Spare Parts
         </button>
       </div>
 
@@ -159,7 +159,7 @@ export default function LaborRates() {
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g., Regular Labor"
+                  placeholder="e.g., Air Filter"
                   className="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-2 focus:ring-[#29cc6a]"
                 />
               </div>
