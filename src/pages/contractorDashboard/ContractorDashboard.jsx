@@ -512,12 +512,14 @@ export default function ContractorDashboard() {
     const repairs = [];
     if (activity.selectedRepairTypes && Array.isArray(activity.selectedRepairTypes)) {
       activity.selectedRepairTypes.forEach((repairType) => {
+        // Use actual repair type price, fallback to 25 if no price available
+        const repairPrice = repairType.price || repairType.unit_price || repairType.unitPrice || 25;
         repairs.push({ 
           id: `repair-${repairType.id}`, 
           title: repairType.name, 
           qty: 1, 
-          unit: 25, 
-          total: 25 
+          unit: repairPrice, 
+          total: repairPrice 
         });
       });
     }
