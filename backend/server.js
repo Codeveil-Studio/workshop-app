@@ -7,6 +7,8 @@ import workOrdersRoutes from './routes/workOrders.js';
 import activityItemsRoutes from './routes/activityItems.js';
 import activityTypesRoutes from './routes/activityTypes.js';
 import pool from './config/db.js';
+import workTypePricesRoutes from './routes/workTypePrices.js';
+import sparePartPricesRoutes from './routes/sparePartPrices.js';
 import transporter from './config/mail.js';
 
 const app = express();
@@ -59,6 +61,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/work-orders', workOrdersRoutes);
 app.use('/api/activity-items', activityItemsRoutes);
 app.use('/api/activity-types', activityTypesRoutes);
+app.use('/api/work-type-prices', workTypePricesRoutes);
+app.use('/api/spare-part-prices', sparePartPricesRoutes);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {

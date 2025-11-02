@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 function ArrowIcon({ className = '' }) {
   return (
@@ -19,38 +19,168 @@ function ArrowIcon({ className = '' }) {
 }
 
 export default function LaborRates() {
+  const [items, setItems] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newPrice, setNewPrice] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const formatCurrency = (val) => `$${(Number(val) || 0).toFixed(2)}`;
+
+  const openForm = () => {
+    setShowForm(true);
+    setError('');
+  };
+
+  const cancelForm = () => {
+    setShowForm(false);
+    setNewName('');
+    setNewPrice('');
+    setError('');
+  };
+
+  const createItem = () => {
+    const name = (newName || '').trim();
+    const priceNum = parseFloat(String(newPrice).trim());
+    if (!name) {
+      setError('Name is required.');
+      return;
+    }
+    if (isNaN(priceNum) || priceNum < 0) {
+      setError('Enter a valid non-negative price.');
+      return;
+    }
+    setLoading(true);
+    fetch('/api/work-type-prices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, price: +priceNum.toFixed(2) }),
+    })
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok || !data.success) throw new Error(data.error || 'Failed to create');
+        setItems((prev) => [data.item, ...prev]);
+        cancelForm();
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  };
+
+  const deleteItem = (id) => {
+    setLoading(true);
+    fetch(`/api/work-type-prices/${id}`, { method: 'DELETE' })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok || data.success === false) throw new Error(data.error || 'Failed to delete');
+        setItems((prev) => prev.filter((it) => it.id !== id));
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/work-type-prices')
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok || !data.success) throw new Error(data.error || 'Failed to load items');
+        setItems(Array.isArray(data.items) ? data.items : []);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="bg-white rounded-lg shadow border-t-2 border-[#29cc6a]">
-      {/* Dropdown */}
+      {/* Header with action */}
       <div className="flex items-center justify-between px-6 py-5">
-        <span className="text-base text-gray-500 font-semibold">Select Service</span>
-        <ArrowIcon className="text-black" />
+        <span className="text-base text-gray-800 font-semibold">Work Type Price</span>
+        <button
+          type="button"
+          onClick={openForm}
+          className="px-3 py-2 rounded border border-[#29cc6a] bg-[#29cc6a] text-white text-sm font-medium hover:bg-[#22b85f]"
+        >
+          Add Work Type Item
+        </button>
       </div>
 
-      {/* Divider List */}
+      {/* Create form */}
+      {showForm && (
+        <div className="px-6 pb-4">
+          <div className="bg-gray-50 rounded p-4 border">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g., Safety Check"
+                  className="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-2 focus:ring-[#29cc6a]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Price</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  placeholder="e.g., 25.00"
+                  className="w-full px-3 py-2 rounded border text-sm focus:outline-none focus:ring-2 focus:ring-[#29cc6a]"
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <button
+                  type="button"
+                  onClick={createItem}
+                  className="px-4 py-2 rounded bg-[#29cc6a] text-white text-sm font-medium hover:bg-[#22b85f]"
+                >
+                  Create
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelForm}
+                  className="px-4 py-2 rounded bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+            {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
+            {loading && <div className="mt-2 text-xs text-gray-500">Working...</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Items list */}
       <div className="divide-y divide-gray-200">
-        <div className="px-6 py-5 text-base text-gray-500 font-semibold hover:bg-gray-50 cursor-pointer">
-          Regular Work Price
-        </div>
-        <div className="px-6 py-5 text-base text-gray-500 font-semibold hover:bg-gray-50 cursor-pointer">
-          Special Work Price
-        </div>
-        <div className="px-6 py-5 text-base text-gray-500 font-semibold hover:bg-gray-50 cursor-pointer">
-          Regular Work Margin
-        </div>
-        <div className="px-6 py-5 text-base text-gray-500 font-semibold hover:bg-gray-50 cursor-pointer">
-          Special Work Margin
-        </div>
-      </div>
-
-      {/* Buttons */}
-      <div className="flex justify-end gap-3 px-6 py-4">
-        <button className="px-4 py-2 rounded bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200">
-          Cancel
-        </button>
-        <button className="px-4 py-2 rounded border border-[#29cc6a] bg-[#29cc6a] text-white text-sm font-medium hover:bg-[#22b85f]">
-          Update
-        </button>
+        {items.length === 0 && !loading && (
+          <div className="px-6 py-5 text-sm text-gray-500">No work order items yet. Click "Add Work Order Item" to create one.</div>
+        )}
+        {loading && (
+          <div className="px-6 py-5 text-sm text-gray-500">Loading...</div>
+        )}
+        {items.map((it) => (
+          <div key={it.id} className="px-6 py-5 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-base text-gray-800 font-semibold">{it.name}</span>
+              <span className="text-xs text-gray-500">Unit: {formatCurrency(it.price)}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-gray-800">Total: {formatCurrency(it.price)}</span>
+              <button
+                type="button"
+                onClick={() => deleteItem(it.id)}
+                className="px-3 py-2 rounded bg-red-50 text-red-700 text-xs font-medium hover:bg-red-100 border border-red-200"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
