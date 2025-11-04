@@ -595,4 +595,135 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Edit an existing work order (update core fields and replace items/work types/photos)
+router.put('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ success: false, error: 'Invalid id' });
+  const body = req.body || {};
+  const {
+    customer = {},
+    vehicle = {},
+    status,
+    activity = {},
+    quote = {},
+    items = [],
+    work_types = [],
+    photos = [],
+    paint_codes = [],
+  } = body;
+
+  // Normalize numbers
+  const subtotal = Number(quote.subtotal || 0);
+  const tax = Number(quote.tax || 0);
+  const total = Number(quote.total || 0);
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    // Update main work order fields
+    const [updateResult] = await conn.query(
+      `UPDATE work_orders SET
+        customer_name = ?,
+        customer_phone = ?,
+        vehicle_make = ?,
+        vehicle_model = ?,
+        vehicle_year = ?,
+        vehicle_vin = ?,
+        vehicle_odometer = ?,
+        vehicle_trim = ?,
+        status = COALESCE(?, status),
+        activity_type = ?,
+        activity_description = ?,
+        repairs_json = ?,
+        paint_codes_json = ?,
+        quote_subtotal = ?,
+        quote_tax = ?,
+        quote_total = ?,
+        updated_at = NOW()
+      WHERE id = ?`,
+      [
+        customer.name || null,
+        customer.phone || null,
+        vehicle.make || null,
+        vehicle.model || null,
+        vehicle.year ? Number(vehicle.year) : null,
+        vehicle.vin || null,
+        vehicle.odometer ? Number(vehicle.odometer) : null,
+        vehicle.trim || null,
+        status || null,
+        activity.type || 'Inspection',
+        activity.description || null,
+        activity.selectedRepairTypes ? JSON.stringify(activity.selectedRepairTypes) : null,
+        paint_codes && paint_codes.length ? JSON.stringify(paint_codes) : null,
+        subtotal,
+        tax,
+        total,
+        id,
+      ]
+    );
+    if (updateResult.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, error: 'Not found' });
+    }
+
+    // Replace items
+    await conn.query(`DELETE FROM work_order_items WHERE work_order_id = ?`, [id]);
+    if (Array.isArray(items) && items.length > 0) {
+      const placeholders = items.map(() => '(?,?,?,?)').join(',');
+      const values = [];
+      for (const it of items) {
+        values.push(id);
+        values.push(it.description || 'Item');
+        values.push(Number(it.qty || 1));
+        values.push(Number(it.unit_price || 0));
+      }
+      await conn.query(
+        `INSERT INTO work_order_items (work_order_id, description, qty, unit_price) VALUES ${placeholders}`,
+        values
+      );
+    }
+
+    // Replace work types
+    await conn.query(`DELETE FROM work_order_work_types WHERE work_order_id = ?`, [id]);
+    if (Array.isArray(work_types) && work_types.length > 0) {
+      const placeholders = work_types.map(() => '(?,?,?)').join(',');
+      const values = [];
+      for (const wt of work_types) {
+        values.push(id);
+        values.push(wt.id || 'unknown');
+        values.push(wt.title || wt.id || '');
+      }
+      await conn.query(
+        `INSERT INTO work_order_work_types (work_order_id, work_type_id, work_type_title) VALUES ${placeholders}`,
+        values
+      );
+    }
+
+    // Replace photos (meta only)
+    await conn.query(`DELETE FROM work_order_photos WHERE work_order_id = ?`, [id]);
+    if (Array.isArray(photos) && photos.length > 0) {
+      const placeholders = photos.map(() => '(?,?,?)').join(',');
+      const values = [];
+      for (const ph of photos) {
+        values.push(id);
+        values.push(ph.url || null);
+        values.push(ph.name || null);
+      }
+      await conn.query(
+        `INSERT INTO work_order_photos (work_order_id, url, name) VALUES ${placeholders}`,
+        values
+      );
+    }
+
+    await conn.commit();
+    res.json({ success: true });
+  } catch (e) {
+    if (conn) await conn.rollback();
+    res.status(500).json({ success: false, error: e.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 export default router;

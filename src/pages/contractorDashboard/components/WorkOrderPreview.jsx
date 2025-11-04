@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import EditWorkOrderModal from "./EditWorkOrderModal";
 
 export default function WorkOrderPreview({ selectedWorkOrder, setWorkOrders, setSelectedWorkOrder }) {
   const [confirmModal, setConfirmModal] = useState({ open: false, type: null }); // type: 'cancel' | 'complete'
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const base = (API_URL || '').replace(/\/+$/, '');
@@ -12,6 +14,8 @@ export default function WorkOrderPreview({ selectedWorkOrder, setWorkOrders, set
   const openCancel = () => setConfirmModal({ open: true, type: 'cancel' });
   const openComplete = () => setConfirmModal({ open: true, type: 'complete' });
   const closeConfirm = () => { setConfirmModal({ open: false, type: null }); setConfirmError(''); };
+  const openEdit = () => setEditOpen(true);
+  const closeEdit = () => setEditOpen(false);
 
   const performConfirm = async () => {
     const type = confirmModal.type;
@@ -101,6 +105,16 @@ export default function WorkOrderPreview({ selectedWorkOrder, setWorkOrders, set
             </div>
           </div>
         </div>
+      )}
+      {editOpen && selectedWorkOrder && (
+        <EditWorkOrderModal
+          workOrderId={selectedWorkOrder.id}
+          open={editOpen}
+          onClose={closeEdit}
+          onSaved={() => { /* noop: handled inside modal via setWorkOrders/setSelectedWorkOrder */ }}
+          setWorkOrders={setWorkOrders}
+          setSelectedWorkOrder={setSelectedWorkOrder}
+        />
       )}
     </div>
   );

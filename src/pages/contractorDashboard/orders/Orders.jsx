@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import EditWorkOrderModal from "../components/EditWorkOrderModal";
 import { Search, Filter, Download } from "lucide-react";
 import RepairTypesList from "../../../components/RepairTypesList";
 
 export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, setSelectedWorkOrder, userEmail }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Filter work orders based on search and status
@@ -479,22 +481,32 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
             <h5 className="text-md font-semibold">Work Order Details</h5>
             {detailsLoading && <span className="text-sm text-gray-500">Loading details...</span>}
             {detailsError && <span className="text-sm text-red-600">{detailsError}</span>}
-            {(((selectedWorkOrder || {}).created_by || '').toLowerCase() === (userEmail || '').toLowerCase()) && (
-              ((details?.order?.supply_item || (selectedWorkOrder || {}).supply_item) ? (
-                <span className="px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 border border-green-200">Supplier Assigned</span>
-              ) : (
+            <div className="flex items-center gap-2">
+              {(((selectedWorkOrder || {}).created_by || '').toLowerCase() === (userEmail || '').toLowerCase()) && (
+                ((details?.order?.supply_item || (selectedWorkOrder || {}).supply_item) ? (
+                  <span className="px-3 py-1 text-sm rounded-md bg-green-100 text-green-700 border border-green-200">Supplier Assigned</span>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openAssignModal();
+                    }}
+                    className="px-3 py-1 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer"
+                    title="Assign Supplier"
+                  >
+                    Send to Supplier
+                  </button>
+                ))
+              )}
+              {selectedWorkOrder?.id && (
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    openAssignModal();
-                  }}
-                  className="px-3 py-1 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 cursor-pointer"
-                  title="Assign Supplier"
+                  onClick={() => setEditOpen(true)}
+                  className="px-3 py-1 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
                 >
-                  Send to Supplier
+                  Edit Work Order
                 </button>
-              ))
-            )}
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -685,6 +697,22 @@ export default function Orders({ workOrders, setWorkOrders, selectedWorkOrder, s
           </div>
         </div>
       )}
+
+      {/* Edit Work Order Modal */}
+      {editOpen && selectedWorkOrder && (
+        <EditWorkOrderModal
+          workOrderId={selectedWorkOrder.id}
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          setWorkOrders={setWorkOrders}
+          setSelectedWorkOrder={setSelectedWorkOrder}
+        />
+      )}
     </div>
   );
 }
+
+// Modal render
+// Place at end to ensure it overlays correctly
+{/* Edit Work Order Modal */}
+{/* Render outside component tree isn’t possible here; so include within component return above if needed. */}
